@@ -1,0 +1,34 @@
+# Timing Entries Demo
+#
+# Format:
+#   HEADER: DEF_CODE:subdivision;key:value,key:value[;tags]
+#   TIMING: HHMM-HHMM tokens [| attr overrides] [| tags]
+#
+# Blocks are separated by blank lines.
+# Each block generates multiple entries (one per timing line).
+
+# Example 1: Basic timing block
+# EST with project TFG/coding, advancement level 10
+# Three timing lines with different token distributions
+EST:TFG/coding;adv:10,project:thesis
+1230-1310 t15m15n10
+1310-1350 t30m10
+1400-1430 t20m5n5
+
+# Example 2: Timing with attribute overrides per line
+# The header sets default adv:5, but individual lines can override
+EST:TFG/research;adv:5,project:paper
+0900-0930 t20m10
+0930-1000 t25m5 | adv:8
+1000-1030 t30 | adv:10
+
+# Example 3: Complex timing tokens
+# Using multiple token types (t=task, m=meeting, n=notes, r=review, p=planning)
+EST:Work/sprint;adv:7,project:main
+1400-1500 t30m15r10p5
+1500-1530 t20m10
+1530-1600 t15n10r5
+
+# Example 4: Single timing line (minimal block)
+EST:Personal/learning;adv:3,project:course
+2000-2100 t45m15

@@ -1,0 +1,2 @@
+BOOK;title:Dune,total_pages:240,total_words:60000
+READ:Dune/chapter3;pages_read:12,duration:30

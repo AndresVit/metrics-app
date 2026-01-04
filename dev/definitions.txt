@@ -1,0 +1,30 @@
+METRIC BOOK
+  title: string
+  total_pages: int
+  total_words: int
+  words_per_page: float = self.total_words / self.total_pages
+END
+
+METRIC READ
+  pages_read: int
+  duration: int
+  book: BOOK = subdivision[0]
+  wpm: float = self.pages_read * self.book.words_per_page / self.duration
+END
+
+METRIC TIM
+  time_init: int
+  time_end: int
+  duration: int
+  time_type: int (1,n)
+  gross_productivity: float = self.time("t") / self.duration
+  net_productivity: float = self.time("t") / (self.time("t") + self.time("m") + self.time("p"))
+  internal_productivity: float = self.time("t") / (self.time("t") + self.time("m"))
+  external_productivity: float = (self.time("t") + self.time("m")) / (self.time("t") + self.time("m") + self.time("p"))
+END
+
+METRIC EST
+  timing: TIM
+  adv: int
+  project: string
+END
