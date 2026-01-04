@@ -174,7 +174,7 @@ function buildResolvedEntry(
         if (valueInput.valueInt !== undefined) {
           setAttributeValue(attrEntry, 'int', valueInput.valueInt);
         } else if (valueInput.valueFloat !== undefined) {
-          setAttributeValue(attrEntry, 'number', valueInput.valueFloat);
+          setAttributeValue(attrEntry, 'float', valueInput.valueFloat);
         } else if (valueInput.valueString !== undefined) {
           setAttributeValue(attrEntry, 'string', valueInput.valueString);
         } else if (valueInput.valueBool !== undefined) {
