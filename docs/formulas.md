@@ -166,5 +166,84 @@ TODO (Future Improvement): The intended final design is dependency-based evaluat
 
 MVP Limitation: For the MVP, formulas may only reference input fields or fields that are evaluated before them in declaration order. No topological sorting is implemented. This limitation will be removed in a future version.
 
+## 11. Formulas on Timing Metrics
+
+TIM (Timing) entries use a multi-valued field `time_type` to store timing tokens. Each token value has its own subdivision representing the token letter.
+
+### 11.1 Value-Level Subdivision
+
+The `time_type` field stores multiple values, each with a subdivision:
+
+| Token   | subdivision | valueInt |
+|---------|-------------|----------|
+| t15     | "t"         | 15       |
+| m10     | "m"         | 10       |
+| m/thk5  | "m/thk"     | 5        |
+| n5      | "n"         | 5        |
+
+Subdivisions support hierarchies (e.g., "m/thk" is a subcategory of "m").
+
+### 11.2 The time() Helper
+
+TIM entries have a built-in `time(base)` method for aggregating time by category:
+
+```
+self.time("t")   # Sum of all t and t/* values
+self.time("m")   # Sum of all m and m/* values
+self.time("p")   # Sum of all p and p/* values
+self.time("n")   # Sum of all n and n/* values
+```
+
+Valid bases: `t`, `m`, `p`, `n`
+
+Behavior:
+- Returns the SUM of all `time_type` values whose subdivision starts with the base
+- Matches exact base ("t") and subcategories ("t/deep", "t/shallow")
+- Returns 0 if no matching values exist
+- Returns FORMULA_ERROR for invalid bases
+
+Example with tokens `t15m10m/thk5`:
+- `self.time("t")` → 15
+- `self.time("m")` → 15 (10 + 5, includes m and m/thk)
+- `self.time("p")` → 0
+
+### 11.3 Productivity KPIs
+
+TIM defines four computed productivity metrics:
+
+**gross_productivity** - Productive time as fraction of total duration:
+```
+self.time("t") / self.duration
+```
+
+**net_productivity** - Productive time as fraction of tracked time (excluding neutral):
+```
+self.time("t") / (self.time("t") + self.time("m") + self.time("p"))
+```
+
+**internal_productivity** - Productive time within focused work (t + m):
+```
+self.time("t") / (self.time("t") + self.time("m"))
+```
+
+**external_productivity** - Focused work as fraction of all tracked time:
+```
+(self.time("t") + self.time("m")) / (self.time("t") + self.time("m") + self.time("p"))
+```
+
+### 11.4 Token Semantics
+
+By convention:
+- `t` = task / productive work
+- `m` = meeting / collaborative work
+- `p` = planning / preparation
+- `n` = neutral / breaks (excluded from productivity calculations)
+
+Token subcategories (e.g., `m/thk` for thinking, `m/sw` for software) are aggregated under their base category.
+
+### 11.5 Division by Zero
+
+If the denominator is zero (e.g., no t, m, or p tokens), the formula returns a FORMULA_ERROR. This is existing behavior for all division operations.
+
 ---
 End of formula specification.

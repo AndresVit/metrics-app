@@ -114,3 +114,61 @@ Definition.category is used for UI grouping only. It is not part of path and not
 
 ## 19. Structured input for MVP
 Textual input grammar is out of scope for MVP. parseInput accepts structured input (JSON or equivalent).
+
+## 20. Timing modeled as a metric (TIM)
+Timing data is represented as a normal MetricDefinition (TIM) rather than a special construct.
+
+Rationale:
+- Consistency with the rest of the domain model
+- TIM entries can be queried and analyzed like any other metric
+- Formulas can reference TIM fields (duration, time_type) normally
+- No special-case handling in the pipeline
+
+## 21. One parent entry per timing line
+Each timing line generates one TIM entry and one parent metric entry (e.g., EST). A timing block with 3 lines produces 6 entries (3 TIM + 3 parent).
+
+Rationale:
+- Each timing line represents a distinct time interval
+- Enables per-line attribute overrides (e.g., different `adv` values)
+- Allows fine-grained tracking and filtering
+- Matches the natural interpretation: each line = one logged activity
+
+## 22. Inline metric entries instead of children[]
+Metric references use inline embedding via `metricEntry` in AttributeValueInput, not the `children[]` array.
+
+Rationale:
+- Fields with metric references behave consistently (all references go through fields)
+- Cardinality validation works naturally (counts children tagged with fieldId)
+- Clear ownership: TIM is the value of the timing field, not an orphan child
+- Eliminates ambiguity about what children[] means in the domain model
+
+The `children[]` array exists only for internal pipeline use and must not appear in parser output.
+
+## 23. Each EST entry has exactly one TIM
+The `timing` field on EST has cardinality (1,1): exactly one TIM per EST entry.
+
+Rationale:
+- Simplifies the data model: one timing line = one TIM + one EST
+- Multiple timing lines produce multiple EST entries, not one EST with multiple TIMs
+- Enables attribute overrides per timing line
+- Matches user mental model: "this time block had these attributes"
+
+## 24. Timing parsing before pipeline validation
+The timing parser (TimingParser) runs before the main pipeline. It transforms the timing DSL into structured MetricEntryInput objects.
+
+Rationale:
+- Separation of concerns: parsing vs. domain logic
+- Parser can reject invalid blocks early (overlapping times, invalid tokens)
+- Pipeline receives valid, structured input
+- Allows multiple parser implementations (timing, default) via a registry
+
+## 25. time() helper instead of generic filtering
+Productivity formulas use an explicit `self.time(base)` helper instead of generic SQL-like filtering syntax.
+
+Rationale:
+- Simple and explicit: `self.time("t")` is clearer than `sum(self.time_type.where(subdivision in "t"))`
+- Domain-specific: encapsulates the aggregation-by-subdivision pattern for timing data
+- Constrained: only valid bases (t, m, p, n) are allowed, preventing errors
+- Returns 0 for missing categories, simplifying formula logic
+
+The helper aggregates by base prefix, so `self.time("m")` includes "m", "m/thk", "m/sw", etc.

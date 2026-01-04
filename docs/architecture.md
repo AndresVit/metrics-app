@@ -230,8 +230,219 @@ Creating a MetricEntry follows a strict deterministic pipeline.
 
 Entry creation is atomic: any error in the pipeline causes the entire entry to be rejected. No partial persistence occurs. A preview mode can run the full pipeline without persisting to validate entries before committing.
 
+### 6.1 Formula Engine
+
+The formula engine (`src/pipeline/formulaEngine.ts`) is a generic expression evaluator that powers the `applyFormulas` step. It is designed to be domain-agnostic.
+
+**Core capabilities:**
+- Arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `^`
+- Aggregation functions: `sum`, `avg`, `min`, `max`, `count`
+- Field navigation: `self.field`, `parent.field`, `root.field`
+- Context variables: `self`, `parent`, `root`, `path`, `division`, `subdivision`
+- List operations and broadcasting
+- Filtering with `where()` clauses
+
+**Domain-specific extensions:**
+
+The engine supports domain-specific helpers that extend its capabilities for particular metric types. These are currently hardcoded but should eventually be registered by domain modules.
+
+Current extensions:
+- `time(base)`: TIM timing aggregation helper (see Section 8)
+
+Domain helpers are invoked as method calls (e.g., `self.time("t")`) and provide semantic operations specific to their domain's data model.
+
 ## 7. Design Guarantees
 - Each user operates on an isolated schema
 - Definitions are immutable during entry evaluation
 - Pipeline stages are independent and deterministic
 - No hidden side effects between stages
+
+## 8. Timing System
+
+The timing system allows users to log time-based activities with fine-grained categorization of how time was spent.
+
+For the complete Timing DSL specification, see [docs/dsl.md](dsl.md).
+
+### 8.1 TIM Metric Definition
+
+TIM (Timing) is a normal MetricDefinition with the following fields:
+
+**Input fields:**
+- `time_init`: int (minutes from midnight, e.g., 750 = 12:30)
+- `time_end`: int (minutes from midnight, e.g., 790 = 13:10)
+- `duration`: int (time_end - time_init, in minutes)
+- `time_type`: int with cardinality (1,n) - multi-valued field for timing tokens
+
+**Computed KPI fields:**
+- `gross_productivity`: number = self.time("t") / self.duration
+- `net_productivity`: number = self.time("t") / (self.time("t") + self.time("m") + self.time("p"))
+- `internal_productivity`: number = self.time("t") / (self.time("t") + self.time("m"))
+- `external_productivity`: number = (self.time("t") + self.time("m")) / (self.time("t") + self.time("m") + self.time("p"))
+
+The `time_type` field stores timing token values (e.g., t15, m10, n5) where:
+- Each token becomes a separate AttributeEntry
+- The token letter is stored as the Entry's subdivision (e.g., "t", "m", "n", "m/thk")
+- The token value is stored as valueInt (e.g., 15, 10, 5)
+
+The `time(base)` helper aggregates values by base category (t, m, p, n), including subcategories.
+
+### 8.2 Parent Metrics Referencing TIM
+
+Metrics like EST (Study) reference TIM via a required field:
+
+```
+METRIC EST
+  timing: TIM
+  adv: int
+  project: string
+END
+```
+
+The `timing` field:
+- Has baseDefinitionId = TIM (a metric reference)
+- Is required (minInstances = 1)
+- Uses inline metric entry embedding (not identifier lookup)
+
+### 8.3 Entry Structure
+
+Each timing line produces two entries:
+1. One TIM MetricEntry containing time data and tokens
+2. One parent MetricEntry (EST) referencing that TIM via the timing field
+
+The TIM entry has `parent_entry_id` set to the parent entry's ID for reverse navigation.
+
+### 8.4 Inline Metric Entries
+
+When a field references another metric, the value can be provided as an inline MetricEntryInput:
+
+```typescript
+{
+  fieldId: "field-est-timing",
+  values: [{ metricEntry: timEntryInput }]
+}
+```
+
+The pipeline processes inline entries by:
+1. Recursively building the nested entry with correct parent_entry_id
+2. Tagging the result with the field's ID for cardinality validation
+3. Adding it to the parent entry's children
+
+Important: The `children[]` array in MetricEntryInput is NOT part of the domain model. Parsers must use field-based inline entries instead.
+
+### 8.5 Validation
+
+- Token values must not exceed duration
+- Time ranges must be ordered and non-overlapping within a block
+- If any timing line is invalid, the entire block is rejected (atomic creation)
+
+## 9. TIM Aggregations (Design)
+
+This section describes the architectural approach for aggregating data across multiple TIM entries. This is design guidance only; implementation is not part of MVP.
+
+### 9.1 Aggregation Concepts
+
+**Atomic unit:** The TIM entry is the fundamental unit of time tracking. Each TIM represents a single, indivisible time interval with its categorized breakdown.
+
+**Aggregation scopes:**
+
+| Scope | Description | Filter Criteria |
+|-------|-------------|-----------------|
+| Session | Consecutive TIM entries with no time gaps | Computed from time adjacency |
+| Day | All TIM entries within a calendar day | timestamp date |
+| Project | All TIM entries for a specific project | parent.project field |
+| Metric | All TIM entries under a specific parent metric type | parent definition (EST, READ, etc.) |
+| Category | All TIM entries within a subdivision hierarchy | subdivision prefix match |
+
+### 9.2 Sessions
+
+A **session** is a sequence of consecutive TIM entries with no time gaps between them.
+
+**Definition:**
+- TIM entries A and B are adjacent if A.time_end == B.time_init
+- A session is a maximal sequence of adjacent TIM entries
+- Session boundaries occur where there is a time gap
+
+**Properties:**
+- Sessions are **derived**, not stored
+- Session boundaries are **computed at query time**
+- A single timing block typically produces one session (no gaps)
+- Multiple timing blocks may form one session if times are continuous
+
+**Example:**
+```
+Block 1: 0900-0930, 0930-1000  → Session 1
+         (gap: 1000-1030)
+Block 2: 1030-1100, 1100-1130  → Session 2
+```
+
+### 9.3 Aggregation Model
+
+Aggregations operate on **sets of TIM entries** filtered by scope criteria.
+
+**Primitive operations:**
+```
+sum(time("t"))     # Total productive time
+sum(time("m"))     # Total meeting time
+sum(time("p"))     # Total planning time
+sum(time("n"))     # Total neutral time
+sum(duration)      # Total time span
+count()            # Number of TIM entries
+```
+
+**Derived ratios (computed from primitives):**
+```
+gross_productivity_agg = sum(time("t")) / sum(duration)
+net_productivity_agg = sum(time("t")) / (sum(time("t")) + sum(time("m")) + sum(time("p")))
+internal_productivity_agg = sum(time("t")) / (sum(time("t")) + sum(time("m")))
+external_productivity_agg = (sum(time("t")) + sum(time("m"))) / (sum(time("t")) + sum(time("m")) + sum(time("p")))
+```
+
+**Note:** Aggregate ratios are NOT averages of per-TIM ratios. They are ratios of sums, which gives correct weighted results.
+
+### 9.4 Formula Reuse
+
+**TIM-level formulas** (gross_productivity, net_productivity, etc.) remain local to each TIM entry. They represent the productivity of that specific time interval.
+
+**Aggregate-level KPIs** reuse the same semantic primitives (`time(base)`, `duration`) but operate on aggregated data:
+
+| Level | Formula | Interpretation |
+|-------|---------|----------------|
+| TIM | `self.time("t") / self.duration` | Productivity of one interval |
+| Session | `sum(time("t")) / sum(duration)` | Productivity of continuous work |
+| Day | `sum(time("t")) / sum(duration)` | Daily productivity |
+| Project | `sum(time("t")) / sum(duration)` | Project-level productivity |
+
+The formula structure is identical; only the input set changes.
+
+### 9.5 Visualization Implications
+
+**Widget queries** filter TIM entries by:
+- Time range (start/end timestamps)
+- Project (parent.project value)
+- Definition (parent metric type: EST, READ, etc.)
+- Category (subdivision hierarchy prefix)
+
+**Aggregations are computed dynamically** at query time:
+1. Query returns filtered set of TIM entries
+2. Client or API computes aggregations from the set
+3. No precomputed aggregates are stored
+
+**Typical widget patterns:**
+- Daily summary: filter by date, aggregate by day
+- Project dashboard: filter by project, aggregate totals
+- Session view: compute session boundaries, show per-session stats
+- Trend chart: filter by date range, aggregate by day/week
+
+### 9.6 MVP Exclusions
+
+The following are explicitly **NOT part of MVP**:
+
+| Feature | Reason |
+|---------|--------|
+| Persisted sessions | Sessions are derived; storing them adds complexity and staleness risk |
+| Precomputed aggregates | Dynamic computation is sufficient for expected data volumes |
+| Materialized views | No query performance optimization needed yet |
+| Background jobs | No scheduled aggregation or rollup tasks |
+| Caching layer | Queries run against live data |
+
+**MVP approach:** All aggregations are computed on-demand from the raw TIM entries. This keeps the system simple and ensures data consistency. Optimization can be added later if query performance becomes an issue.

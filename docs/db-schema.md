@@ -31,6 +31,7 @@ Extends definitions when type = attribute.
 Fields:
 - definition_id: TEXT (primary key, FK → definitions.id)
 - datatype: TEXT (int | float | string | bool | timestamp | hierarchyString)
+  - Note: 'number' is NOT valid - use 'int' or 'float' explicitly
 
 ## metric_definitions
 Extends definitions when type = metric.
