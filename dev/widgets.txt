@@ -1,0 +1,31 @@
+# Widget Definitions
+# Each widget block is separated by blank lines
+# Format follows the Widget DSL specification
+
+WIDGET "Daily Productivity"
+
+tims = TIM FROM TODAY
+
+"productive_time": int = sum(tims.time("t"))
+"unproductive time": int = sum(tims.time("m"))
+"lost time": int = sum(tims.time("p"))
+"neutral_time": int = sum(tims.time("n"))
+"total_duration": int = sum(tims.duration)
+"productivity": float = sum(tims.time("t")) / (sum(tims.time("t")) + sum(tims.time("m")) + sum(tims.time("p")))
+END
+
+WIDGET "Time Breakdown"
+
+reads = READ FROM TODAY
+
+"total duration": int = sum(reads.duration)
+"pages read": int = sum(reads.pages_read)
+END
+
+WIDGET "Session Count"
+
+tims = TIM FROM TODAY
+
+"sessions": int = count(tims)
+"avg_duration": float = avg(tims.duration)
+END

@@ -1,0 +1,394 @@
+.app {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 2rem;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* Header */
+.app-header {
+  margin-bottom: 2rem;
+}
+
+.app-header h1 {
+  margin-bottom: 1rem;
+  color: #333;
+}
+
+/* Tabs */
+.tabs {
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 2px solid #e9ecef;
+  padding-bottom: 0;
+}
+
+.tabs button {
+  padding: 0.75rem 1.5rem;
+  font-size: 14px;
+  font-weight: 600;
+  color: #666;
+  background-color: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  cursor: pointer;
+  border-radius: 0;
+}
+
+.tabs button:hover {
+  color: #333;
+  background-color: #f8f9fa;
+}
+
+.tabs button.active {
+  color: #007bff;
+  border-bottom-color: #007bff;
+}
+
+/* Temporal Bar */
+.temporal-bar {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 0.75rem 1rem;
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.temporal-bar-section {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.temporal-bar-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #666;
+  white-space: nowrap;
+}
+
+/* Segmented Control */
+.segmented-control {
+  display: flex;
+  background-color: #e9ecef;
+  border-radius: 6px;
+  padding: 2px;
+}
+
+.segmented-control button {
+  padding: 0.4rem 0.75rem;
+  font-size: 13px;
+  font-weight: 500;
+  color: #666;
+  background-color: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.segmented-control button:hover:not(.active) {
+  color: #333;
+}
+
+.segmented-control button.active {
+  background-color: #fff;
+  color: #007bff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Temporal Select */
+.temporal-select {
+  padding: 0.4rem 0.75rem;
+  font-size: 13px;
+  font-weight: 500;
+  color: #333;
+  background-color: #fff;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  cursor: pointer;
+  min-width: 80px;
+}
+
+.temporal-select:focus {
+  outline: none;
+  border-color: #007bff;
+}
+
+/* Navigation */
+.temporal-navigation {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.nav-btn {
+  padding: 0.4rem 0.6rem;
+  font-size: 14px;
+  font-weight: 600;
+  color: #666;
+  background-color: #fff;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.nav-btn:hover {
+  color: #333;
+  background-color: #f8f9fa;
+  border-color: #ccc;
+}
+
+.anchor-date-container {
+  position: relative;
+}
+
+.anchor-date-btn {
+  padding: 0.4rem 0.75rem;
+  font-size: 13px;
+  font-weight: 500;
+  color: #333;
+  background-color: #fff;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  cursor: pointer;
+  min-width: 140px;
+  text-align: center;
+}
+
+.anchor-date-btn:hover {
+  background-color: #f8f9fa;
+  border-color: #ccc;
+}
+
+.date-picker-input {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 4px;
+  padding: 0.5rem;
+  font-size: 13px;
+  border: 1px solid #007bff;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 100;
+}
+
+/* Filters Stub */
+.temporal-filters-stub {
+  margin-left: auto;
+}
+
+.filters-placeholder {
+  color: #aaa;
+  font-style: italic;
+}
+
+/* Dashboard */
+.dashboard {
+  padding-top: 1rem;
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.dashboard-header h2 {
+  margin: 0;
+  color: #333;
+}
+
+.refresh-btn {
+  padding: 0.5rem 1rem;
+  font-size: 14px;
+}
+
+.dashboard-loading,
+.dashboard-error,
+.dashboard-empty {
+  padding: 2rem;
+  text-align: center;
+  color: #666;
+}
+
+.dashboard-error {
+  color: #dc3545;
+}
+
+.dashboard-empty pre {
+  background-color: #f8f9fa;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  display: inline-block;
+  margin: 1rem 0;
+}
+
+/* Widget Grid */
+.widget-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.widget-card {
+  background-color: #fff;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 1.25rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.widget-card h3 {
+  margin: 0 0 1rem 0;
+  color: #333;
+  font-size: 1.1rem;
+  border-bottom: 1px solid #e9ecef;
+  padding-bottom: 0.75rem;
+}
+
+.widget-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.widget-table tr:not(:last-child) td {
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.widget-table td {
+  padding: 0.5rem 0;
+}
+
+.widget-table td.label {
+  color: #666;
+}
+
+.widget-table td.value {
+  text-align: right;
+  font-family: 'Courier New', Courier, monospace;
+  font-weight: 600;
+  color: #333;
+}
+
+.widget-error {
+  color: #dc3545;
+  font-size: 0.9rem;
+}
+
+/* Runner */
+.runner {
+  padding-top: 1rem;
+}
+
+h2 {
+  margin-bottom: 1rem;
+  color: #444;
+}
+
+.editor-section {
+  margin-bottom: 1rem;
+}
+
+.editor-section label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #555;
+}
+
+textarea {
+  width: 100%;
+  padding: 0.75rem;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+textarea:focus {
+  outline: none;
+  border-color: #007bff;
+}
+
+.button-section {
+  margin-bottom: 1.5rem;
+}
+
+button {
+  padding: 0.75rem 1.5rem;
+  font-size: 16px;
+  font-weight: 600;
+  color: white;
+  background-color: #007bff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  background-color: #0056b3;
+}
+
+button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.result-section {
+  padding: 1rem;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  border: 1px solid #e9ecef;
+}
+
+.result-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.result-table th,
+.result-table td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.result-table th {
+  background-color: #e9ecef;
+  font-weight: 600;
+}
+
+.result-table .value {
+  font-family: 'Courier New', Courier, monospace;
+  text-align: right;
+}
+
+.error {
+  color: #dc3545;
+}
+
+.error h2 {
+  color: #dc3545;
+}
+
+.error pre {
+  background-color: #fff;
+  padding: 1rem;
+  border-radius: 4px;
+  border: 1px solid #f5c6cb;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}

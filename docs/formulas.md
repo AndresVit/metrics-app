@@ -245,5 +245,61 @@ Token subcategories (e.g., `m/thk` for thinking, `m/sw` for software) are aggreg
 
 If the denominator is zero (e.g., no t, m, or p tokens), the formula returns a FORMULA_ERROR. This is existing behavior for all division operations.
 
+## 12. Widget Aggregations
+
+Widgets use a different evaluation context than entry formulas. While entry formulas operate on a single entry (`self.field`), widget expressions operate on collections of entries.
+
+### 12.1 Collection Context
+
+In widgets, expressions reference a dataset alias that represents all entries matching the query:
+
+```
+tims = TIM FROM TODAY
+
+"total": int = sum(tims.duration)
+```
+
+Here `tims` is a collection of all TIM entries from today.
+
+### 12.2 Aggregation Functions (Widget Context)
+
+| Function | Description | Example |
+|----------|-------------|---------|
+| `sum(collection.field)` | Sum of field values | `sum(tims.duration)` |
+| `avg(collection.field)` | Average of field values | `avg(reads.pages_read)` |
+| `count(collection)` | Count of entries | `count(tims)` |
+
+### 12.3 time() in Widget Context
+
+The `time()` helper works on TIM collections to aggregate time values across all entries:
+
+```
+sum(tims.time("t"))   # Total productive time across all TIM entries
+sum(tims.time("m"))   # Total meeting time across all TIM entries
+```
+
+This differs from entry-level `self.time("t")` which operates on a single entry.
+
+### 12.4 Arithmetic in Widgets
+
+Widget expressions require scalar values for arithmetic. Use aggregations first:
+
+```
+# Correct: aggregate then divide
+"productivity": float = sum(tims.time("t")) / sum(tims.duration)
+
+# Error: cannot divide collections
+"wrong": float = tims.time("t") / tims.duration
+```
+
+### 12.5 Empty Collections
+
+If no entries match the query:
+- `sum()` returns 0
+- `avg()` returns 0
+- `count()` returns 0
+
+This prevents division-by-zero in common patterns when checking for data presence.
+
 ---
 End of formula specification.

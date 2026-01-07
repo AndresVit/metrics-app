@@ -446,3 +446,280 @@ The following are explicitly **NOT part of MVP**:
 | Caching layer | Queries run against live data |
 
 **MVP approach:** All aggregations are computed on-demand from the raw TIM entries. This keeps the system simple and ensures data consistency. Optimization can be added later if query performance becomes an issue.
+
+## 10. Widget System
+
+Widgets provide read-only aggregation views over persisted entries. They are computed on-demand and NOT persisted.
+
+### 10.1 Purpose
+
+Widgets enable data visualization and reporting by:
+- Querying persisted entries by definition and time period
+- Aggregating values using sum(), avg(), count()
+- Computing derived metrics from aggregated data
+- Returning flat JSON objects for UI consumption
+
+### 10.2 Architecture
+
+```
+Widget Source (DSL)
+       ↓
+   parseWidget()      → ParsedWidget
+       ↓
+ loadEntriesForWidget() → LoadedEntry[]
+       ↓
+ evaluateWidgetExpression() (per field)
+       ↓
+   WidgetResult (JSON)
+```
+
+### 10.3 Key Differences from Entry Pipeline
+
+| Aspect | Entry Pipeline | Widget System |
+|--------|---------------|---------------|
+| Data flow | Input → Transform → Persist | Query → Aggregate → Return |
+| Persistence | Creates entries in DB | Read-only, no persistence |
+| Formulas | Operate on single entry (self.field) | Operate on collections (sum(alias.field)) |
+| Context | ResolvedEntry tree | Flat LoadedEntry array |
+
+### 10.4 Widget DSL
+
+Widgets are defined using a simple DSL:
+
+```
+WIDGET "<name>"
+
+<alias> = <DEF> FROM <PERIOD>
+
+"<label>": <type> = <expression>
+END
+```
+
+See [docs/dsl.md](dsl.md) for the full Widget DSL specification.
+
+### 10.5 Aggregation Support
+
+Widget expressions support:
+- `sum(alias.field)` - Sum of field values
+- `avg(alias.field)` - Average of field values
+- `count(alias)` - Count of entries
+- `sum(alias.time("base"))` - Sum of time values for TIM entries
+- Arithmetic: `+`, `-`, `*`, `/`
+
+### 10.6 MVP Scope
+
+| Feature | Status |
+|---------|--------|
+| Single dataset per widget | MVP |
+| TODAY period filter | MVP |
+| sum, avg, count aggregations | MVP |
+| time() helper for TIM | MVP |
+| WHERE clauses | Deferred |
+| Multiple datasets / joins | Deferred |
+| Other periods (WEEK, MONTH) | Deferred |
+
+## 11. UI Layer
+
+The UI layer provides a minimal web interface for running widgets.
+
+### 11.1 Architecture
+
+```
+┌─────────────────┐     HTTP      ┌─────────────────┐
+│  React Frontend │  ─────────>  │   API Server    │
+│   (Vite, :5173) │  <─────────  │  (Express,:3001)│
+└─────────────────┘     JSON     └─────────────────┘
+                                         │
+                                         ▼
+                                  ┌─────────────────┐
+                                  │  Widget System  │
+                                  │  (runWidget)    │
+                                  └─────────────────┘
+                                         │
+                                         ▼
+                                  ┌─────────────────┐
+                                  │    Supabase     │
+                                  └─────────────────┘
+```
+
+### 11.2 Backend API
+
+**Location:** `server/api.ts`
+
+Primary endpoints:
+
+| Method | Path | Input | Output |
+|--------|------|-------|--------|
+| GET | `/api/dashboard` | - | `{ widgets: [{ name, values }] }` |
+| POST | `/api/run-widget` | `{ widgetSource: string }` | `{ success, name?, result?, error? }` |
+| GET | `/api/widgets` | - | `{ success, widgets: [...] }` |
+| GET | `/api/health` | - | `{ status: "ok", userId }` |
+
+**Primary entry point:** `GET /api/dashboard` is the main endpoint for frontend dashboard data. It returns pre-computed widget results as JSON.
+
+**Features:**
+- Uses fixed userId from `DEV_CONFIG` (no auth for MVP)
+- CORS enabled for local development
+- Structured error responses
+- Vite dev server proxies `/api/*` to Express (port 3001)
+
+### 11.3 Frontend
+
+**Location:** `web/`
+
+Single-page React application:
+- Textarea for widget DSL input
+- "Run Widget" button
+- Results table or error display
+- Example widget pre-loaded
+
+**Stack:**
+- Vite (dev server, build)
+- React + TypeScript
+- Minimal CSS (no framework)
+
+### 11.4 Running the UI
+
+```bash
+# Terminal 1: Start API server
+npm run server
+
+# Terminal 2: Start frontend
+npm run web
+```
+
+Then open http://localhost:5173
+
+### 11.5 MVP Scope
+
+| Feature | Status |
+|---------|--------|
+| Widget DSL input | MVP |
+| Run and display results | MVP |
+| Error display | MVP |
+| Widget persistence | MVP |
+| Dashboard view | MVP |
+| Widget editing | Deferred |
+| User authentication | Deferred |
+| Date picker for periods | Deferred |
+| Charts/visualizations | Deferred |
+
+## 12. Widget Persistence
+
+Widgets can be persisted to the database and managed through a lifecycle similar to definitions.
+
+### 12.1 Lifecycle
+
+```
+widgets.txt (source of truth)
+       ↓
+  seedWidgets.ts
+       ↓
+  widgets table (Supabase)
+       ↓
+  WidgetRepository.loadWidgets()
+       ↓
+  runWidget() execution
+       ↓
+  Dashboard UI
+```
+
+### 12.2 Storage
+
+Widgets are stored in the `widgets` table:
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | UUID | Primary key |
+| user_id | UUID | Owner |
+| name | TEXT | Widget name (unique per user) |
+| dsl | TEXT | Full widget DSL source |
+| created_at | TIMESTAMP | Creation time |
+
+### 12.3 Seeding
+
+Widgets are seeded from `dev/widgets.txt`:
+
+```bash
+# Dry run (preview)
+npm run seed-widgets -- --dry-run
+
+# Seed widgets
+npm run seed-widgets
+
+# Clean and reseed
+npm run seed-widgets -- --clean
+```
+
+### 12.4 API Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/widgets` | List stored widgets |
+| GET | `/api/dashboard` | Execute all widgets |
+| POST | `/api/run-widget` | Run ad-hoc widget DSL |
+
+### 12.5 Dashboard
+
+The dashboard UI:
+1. Loads all widgets for the user
+2. Executes each widget
+3. Renders results in a grid layout
+4. Shows errors for failed widgets
+
+## 13. Temporal Context
+
+The Temporal Context provides a global state that controls the time range and aggregation granularity for all dashboard views.
+
+### 13.1 State Model
+
+```typescript
+TemporalContext {
+  bigPeriod: 'day' | 'week' | 'month' | 'year'  // Total time range
+  smallPeriod: 'hour' | 'day' | 'week' | 'month' // Aggregation subdivision
+  anchorDate: Date                               // Position of the range
+}
+```
+
+**Rules:**
+- `bigPeriod` defines the total time range displayed
+- `smallPeriod` defines how data is grouped/aggregated within the range
+- `anchorDate` defines where the range is positioned in time
+- Navigation arrows shift `anchorDate` by one `bigPeriod` unit
+
+### 13.2 UI Components
+
+The Temporal Bar is a global top bar visible in all main views:
+
+| Component | Description |
+|-----------|-------------|
+| Range selector | Segmented control for bigPeriod (Day/Week/Month/Year) |
+| Group by selector | Dropdown for smallPeriod (Hour/Day/Week/Month) |
+| Date navigation | Left/right arrows + clickable date display |
+| Filters | Placeholder stub for future filter implementation |
+
+### 13.3 Integration
+
+**React Context:**
+- `TemporalContextProvider` wraps the app at the root level
+- `useTemporalContext()` hook provides access to state and actions
+- Context changes trigger automatic dashboard refresh
+
+**API Integration:**
+- Dashboard fetches include temporal parameters: `period`, `groupBy`, `anchorDate`
+- Current mapping: `bigPeriod=day` maps to backend `TODAY` period
+- Other periods are stubbed (WEEK, MONTH, YEAR) pending backend support
+
+### 13.4 MVP Scope
+
+| Feature | Status |
+|---------|--------|
+| Global temporal context state | MVP |
+| Temporal bar UI | MVP |
+| Date navigation (arrows) | MVP |
+| Date picker for anchorDate | MVP |
+| Dashboard refresh on context change | MVP |
+| bigPeriod=day → TODAY backend mapping | MVP |
+| Filters | Deferred (stub only) |
+| Week/Month/Year backend support | Deferred |
+| State persistence | Deferred (in-memory only)

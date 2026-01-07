@@ -3,13 +3,23 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "demo": "npx tsx src/pipeline/parseInputDemo.ts"
+    "demo": "npx tsx src/pipeline/parseInputDemo.ts",
+    "server": "npx tsx server/api.ts",
+    "web": "cd web && npm run dev",
+    "widget-sandbox": "npx tsx dev/widgetSandbox.ts",
+    "seed-widgets": "npx tsx dev/seedWidgets.ts"
   },
   "devDependencies": {
     "tsx": "^4.0.0",
     "typescript": "^5.0.0"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.89.0"
+    "@supabase/supabase-js": "^2.89.0",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/pg": "^8.16.0",
+    "cors": "^2.8.5",
+    "express": "^5.2.1",
+    "pg": "^8.16.3"
   }
 }

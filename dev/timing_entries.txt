@@ -32,3 +32,8 @@ EST:Work/sprint;adv:7,project:main
 # Example 4: Single timing line (minimal block)
 EST:Personal/learning;adv:3,project:course
 2000-2100 t45m15
+
+EST:TFG/research;adv:5,project:paper
+0910-0930 t10m10
+0930-1000 t25m5 | adv:8
+1000-1030 t30 | adv:10

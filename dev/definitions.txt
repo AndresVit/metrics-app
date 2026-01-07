@@ -15,7 +15,7 @@ END
 METRIC TIM
   time_init: int
   time_end: int
-  duration: int
+  duration: int = self.time_end - self.time_init
   time_type: int (1,n)
   gross_productivity: float = self.time("t") / self.duration
   net_productivity: float = self.time("t") / (self.time("t") + self.time("m") + self.time("p"))

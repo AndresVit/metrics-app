@@ -172,3 +172,70 @@ Rationale:
 - Returns 0 for missing categories, simplifying formula logic
 
 The helper aggregates by base prefix, so `self.time("m")` includes "m", "m/thk", "m/sw", etc.
+
+## 26. Widgets are not persisted
+Widgets are computed on-demand and NOT stored in the database.
+
+Rationale:
+- Simplicity: no additional tables or sync logic needed
+- Freshness: widgets always reflect current data
+- Flexibility: widget definitions can be modified without migration
+- Performance: MVP data volumes don't require pre-computation
+- No staleness: avoids cache invalidation complexity
+
+Widgets query persisted entries and compute aggregations at runtime.
+
+## 27. Widget WHERE clauses deferred
+WHERE clauses for filtering entries within a widget are not part of MVP.
+
+Rationale:
+- MVP scope: TODAY period filter is sufficient for initial use cases
+- Complexity: WHERE parsing and evaluation adds significant complexity
+- Data volume: filtering can be done client-side for MVP data sizes
+- Iteration: easier to add filtering after core widget system is stable
+
+Future WHERE syntax will likely follow SQL-like patterns: `WHERE subdivision in "prefix"`.
+
+## 28. Widget joins deferred
+Joining across multiple definitions (e.g., TIM + EST) is not part of MVP.
+
+Rationale:
+- Complexity: join semantics require careful design (inner/outer, on what key?)
+- MVP use cases: single-definition widgets cover most reporting needs
+- Data model: entries are already hierarchical (EST contains TIM via timing field)
+- Query cost: joins would require loading and correlating multiple datasets
+
+Future join syntax will need to specify join keys and handle missing matches.
+
+## 29. Widget expressions require scalars for arithmetic
+Widget arithmetic operations (`+`, `-`, `*`, `/`) only work on scalar values, not collections.
+
+Rationale:
+- Clarity: `sum(a) / sum(b)` is unambiguous; `a / b` on collections is not
+- Correctness: element-wise division often gives wrong results for ratios
+- Explicit aggregation: forces users to think about how data should be combined
+- Error prevention: avoids subtle bugs from implicit broadcasting
+
+To compute ratios, aggregate first: `sum(tims.time("t")) / sum(tims.duration)`.
+
+## 30. UI is read-only first
+The UI displays widgets but does not allow editing them directly. Widget modifications go through widgets.txt.
+
+Rationale:
+- Focus: validate the widget system before adding edit complexity
+- Source of truth: widgets.txt remains authoritative
+- Iteration speed: can test and refine widget DSL in text editor
+- Deferred complexity: in-app editing requires conflict resolution, validation UI
+
+The dashboard loads and runs persisted widgets. The widget runner allows ad-hoc DSL testing.
+
+## 31. widgets.txt is the source of truth
+Widget definitions live in `dev/widgets.txt` and are seeded to the database, similar to definitions.txt.
+
+Rationale:
+- Consistency: same pattern as definitions and entries
+- Version control: widget DSL tracked in git
+- Reproducibility: can recreate database state from text files
+- Development flow: edit text, seed, test cycle
+
+The seeding script (`seedWidgets.ts`) parses widgets.txt and inserts into the widgets table. Use `--clean` to replace existing widgets.

@@ -311,3 +311,230 @@ EST:Personal;adv:3,project:side
 Produces:
 - TIM entry: time_init=1380, time_end=1470, duration=90
 - time_type: [t:60, m:30]
+
+---
+
+# Widget DSL Specification
+
+## 1. Purpose
+
+Widgets are read-only aggregation views over persisted entries. They query data, compute aggregations, and return flat JSON objects for visualization.
+
+Key characteristics:
+- Widgets are NOT persisted
+- Widgets are computed on-demand
+- Widgets operate on collections, not single entries
+
+## 2. Syntax
+
+```
+WIDGET "<name>"
+
+<alias> = <DEF> FROM <PERIOD>
+
+"<label>": <type> = <expression>
+"<label>": <type> = <expression>
+...
+END
+```
+
+### 2.1 WIDGET Header
+
+```
+WIDGET "<name>"
+```
+
+- `<name>`: Human-readable widget name (quoted string)
+- Required as the first non-empty line
+
+### 2.2 Dataset Declaration
+
+```
+<alias> = <DEF> FROM <PERIOD>
+```
+
+- `<alias>`: Variable name to reference the dataset in expressions
+- `<DEF>`: Definition code (e.g., TIM, READ, EST)
+- `<PERIOD>`: Time period filter
+
+**MVP Periods:**
+- `TODAY`: Entries from the current calendar day
+
+**Future Periods (not MVP):**
+- `YESTERDAY`, `THIS_WEEK`, `THIS_MONTH`, `LAST_N_DAYS(n)`
+
+### 2.3 Computed Fields
+
+```
+"<label>": <type> = <expression>
+```
+
+- `<label>`: Output field name (quoted string)
+- `<type>`: `int` or `float`
+- `<expression>`: Aggregation expression
+
+### 2.4 END Keyword
+
+The widget definition must end with `END` on its own line.
+
+## 3. Expressions
+
+### 3.1 Dataset Reference
+
+Reference the dataset by its alias:
+```
+tims        # The collection of TIM entries
+reads       # The collection of READ entries
+```
+
+### 3.2 Field Access
+
+Access fields on the collection:
+```
+tims.duration     # Array of duration values
+reads.pages_read  # Array of pages_read values
+```
+
+### 3.3 Aggregation Functions
+
+| Function | Description |
+|----------|-------------|
+| `sum(values)` | Sum of all values |
+| `avg(values)` | Average of all values |
+| `count(collection)` | Number of entries |
+
+Examples:
+```
+sum(tims.duration)
+avg(reads.pages_read)
+count(tims)
+```
+
+### 3.4 time() Method (TIM only)
+
+For TIM collections, aggregate time by base category:
+```
+tims.time("t")   # Array of productive time per entry
+tims.time("m")   # Array of meeting time per entry
+```
+
+Combined with aggregation:
+```
+sum(tims.time("t"))   # Total productive time
+```
+
+### 3.5 Arithmetic
+
+Standard arithmetic operators:
+```
+sum(tims.time("t")) + sum(tims.time("m"))
+sum(tims.time("t")) / sum(tims.duration)
+```
+
+**Important:** Arithmetic requires scalar values. Aggregate collections first.
+
+### 3.6 Parentheses
+
+Group expressions with parentheses:
+```
+sum(tims.time("t")) / (sum(tims.time("t")) + sum(tims.time("m")))
+```
+
+## 4. Output
+
+Widget evaluation returns a flat JSON object:
+```json
+{
+  "label1": value1,
+  "label2": value2,
+  ...
+}
+```
+
+Types are coerced according to field declarations:
+- `int`: Values are floored to integers
+- `float`: Values remain as floating-point
+
+## 5. Examples
+
+### 5.1 Daily Productivity
+
+```
+WIDGET "Daily Productivity"
+
+tims = TIM FROM TODAY
+
+"productive_time": int = sum(tims.time("t"))
+"total_duration": int = sum(tims.duration)
+"productivity": float = sum(tims.time("t")) / sum(tims.duration)
+END
+```
+
+Output:
+```json
+{
+  "productive_time": 165,
+  "total_duration": 240,
+  "productivity": 0.6875
+}
+```
+
+### 5.2 Daily Reading
+
+```
+WIDGET "Daily Reading"
+
+reads = READ FROM TODAY
+
+"pages": int = sum(reads.pages_read)
+"duration": int = sum(reads.duration)
+"sessions": int = count(reads)
+END
+```
+
+Output:
+```json
+{
+  "pages": 55,
+  "duration": 95,
+  "sessions": 2
+}
+```
+
+### 5.3 Productivity Breakdown
+
+```
+WIDGET "Time Breakdown"
+
+tims = TIM FROM TODAY
+
+"good": int = sum(tims.time("t"))
+"meeting": int = sum(tims.time("m"))
+"planning": int = sum(tims.time("p"))
+"neutral": int = sum(tims.time("n"))
+"net_productivity": float = sum(tims.time("t")) / (sum(tims.time("t")) + sum(tims.time("m")) + sum(tims.time("p")))
+END
+```
+
+## 6. Error Handling
+
+| Error | Cause |
+|-------|-------|
+| Parse error | Invalid syntax |
+| Unknown definition | DEF code not found |
+| Unknown field | Field name not in definition |
+| Division by zero | Denominator evaluates to 0 |
+| Type mismatch | Arithmetic on non-numeric values |
+
+## 7. MVP Limitations
+
+The following features are NOT part of MVP:
+
+| Feature | Status |
+|---------|--------|
+| WHERE clauses | Deferred |
+| Multiple datasets | Deferred |
+| Joins across definitions | Deferred |
+| Periods other than TODAY | Deferred |
+| min(), max() aggregations | Deferred |
+| String operations | Deferred |
