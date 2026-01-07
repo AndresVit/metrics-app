@@ -55,7 +55,7 @@ CREATE TABLE entries (
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     definition_id UUID NOT NULL REFERENCES definitions(id) ON DELETE RESTRICT,
     parent_entry_id BIGINT REFERENCES entries(id) ON DELETE CASCADE,
-    timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    timestamp TIMESTAMPTZ NOT NULL DEFAULT (date_trunc('day', NOW())),
     subdivision TEXT,
     comments TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

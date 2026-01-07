@@ -24,6 +24,16 @@ import { convertToInstances } from './convertToInstances';
 import { applyFormulas } from './applyFormulas';
 import { validateCardinalities } from './validateCardinalities';
 
+/**
+ * Normalizes a timestamp to start of day (00:00:00).
+ * All entry timestamps should be at 00:00 to represent the day they belong to.
+ */
+function normalizeToStartOfDay(timestamp: Date): Date {
+  const d = new Date(timestamp);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
 export interface PipelineConfig {
   definitions: Definition[];
   metricDefinitions: MetricDefinition[];
@@ -112,7 +122,7 @@ function buildResolvedEntry(
     userId,
     input.definitionId,
     parentEntryId,
-    input.timestamp,
+    normalizeToStartOfDay(input.timestamp),
     input.subdivision || null,
     input.comments || null,
     now,
@@ -151,7 +161,7 @@ function buildResolvedEntry(
         userId,
         field.baseDefinitionId,
         entryId,
-        input.timestamp,
+        normalizeToStartOfDay(input.timestamp),
         childSubdivision,
         null,
         now,

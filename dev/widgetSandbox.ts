@@ -26,7 +26,7 @@ const USER_ID = DEV_CONFIG.USER_ID;
 const DAILY_PRODUCTIVITY_WIDGET = `
 WIDGET "Daily Productivity"
 
-tims = TIM FROM TODAY
+tims = TIM
 
 "productive_time": int = sum(tims.time("t"))
 "meeting_time": int = sum(tims.time("m"))
@@ -40,7 +40,7 @@ END
 const DAILY_READING_WIDGET = `
 WIDGET "Daily Reading"
 
-reads = READ FROM TODAY
+reads = READ
 
 "pages": int = sum(reads.pages_read)
 "duration": int = sum(reads.duration)
@@ -263,7 +263,7 @@ async function main(): Promise<void> {
   const invalidWidget = `
 WIDGET Missing Quotes
 
-tims = TIM FROM TODAY
+tims = TIM
 
 "test": int = sum(tims.duration)
 END

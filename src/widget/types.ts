@@ -15,19 +15,20 @@ export interface ParsedWidget {
 }
 
 /**
- * Dataset declaration: alias = DEF FROM PERIOD
+ * Dataset declaration: alias = DEF
+ *
+ * Period comes from the temporal context, not from the DSL.
  */
 export interface DatasetDeclaration {
   alias: string;
   definitionCode: string;
-  period: Period;
 }
 
 /**
  * Period for filtering entries
- * MVP: TODAY only
+ * Specifies the time range for widget queries
  */
-export type Period = 'TODAY';
+export type Period = 'TODAY' | 'DAY' | 'WEEK' | 'MONTH' | 'YEAR';
 
 /**
  * Computed field declaration: "label": type = expression
@@ -56,8 +57,9 @@ export interface WidgetParseError {
 
 /**
  * Widget evaluation result
+ * Values can be null (e.g., division by zero returns null instead of error)
  */
-export type WidgetResult = Record<string, number>;
+export type WidgetResult = Record<string, number | null>;
 
 /**
  * Evaluation context for widget expressions
@@ -103,4 +105,16 @@ export interface LoadedEntry {
  */
 export interface WidgetConfig {
   userId: string;
+  /**
+   * Anchor date for time-based filtering.
+   * Used to compute the date range based on the period.
+   * If not provided, defaults to current date.
+   */
+  anchorDate?: Date;
+  /**
+   * Period from the temporal context (bigPeriod).
+   * Determines the date range: DAY, WEEK, MONTH, or YEAR.
+   * If not provided, defaults to 'DAY'.
+   */
+  period?: Period;
 }

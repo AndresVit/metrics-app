@@ -6,16 +6,19 @@
  * Syntax:
  *   WIDGET "<name>"
  *
- *   <alias> = <DEF> FROM <PERIOD>
+ *   <alias> = <DEF>
  *
  *   "<label>": <type> = <expression>
  *   "<label>": <type> = <expression>
  *   END
  *
+ * Note: Period (day/week/month/year) comes from the temporal context,
+ * not from the widget DSL.
+ *
  * Example:
  *   WIDGET "Daily Productivity"
  *
- *   tims = TIM FROM TODAY
+ *   tims = TIM
  *
  *   "good": int = sum(tims.time("t"))
  *   "prod": float = sum(tims.time("t")) / sum(tims.time("t") + tims.time("m") + tims.time("p"))
@@ -26,7 +29,6 @@ import {
   ParsedWidget,
   DatasetDeclaration,
   ComputedField,
-  Period,
   WidgetParseResult,
 } from './types';
 
@@ -126,7 +128,7 @@ export function parseWidget(source: string): WidgetParseResult {
 function parseWidgetHeader(
   lines: string[],
   lineIndex: number
-): { success: true; name: string; nextLine: number } | { success: false; error: { message: string; lineNumber?: number } } {
+): { success: true; name: string; nextLine: number } | { success: false; error: { message: string; lineNumber?: number; details?: string } } {
   if (lineIndex >= lines.length) {
     return {
       success: false,
@@ -159,7 +161,9 @@ function parseWidgetHeader(
 }
 
 /**
- * Parse dataset declaration: alias = DEF FROM PERIOD
+ * Parse dataset declaration: alias = DEF
+ *
+ * Period is no longer specified in DSL - it comes from the temporal context.
  */
 function parseDatasetDeclaration(
   lines: string[],
@@ -176,40 +180,27 @@ function parseDatasetDeclaration(
   }
 
   const line = lines[lineIndex].trim();
-  const match = line.match(/^(\w+)\s*=\s*(\w+)\s+FROM\s+(\w+)$/);
+  // Match: alias = DEF (no period - comes from temporal context)
+  const match = line.match(/^(\w+)\s*=\s*(\w+)$/);
 
   if (!match) {
     return {
       success: false,
       error: {
-        message: 'Invalid dataset declaration. Expected: alias = DEF FROM PERIOD',
+        message: 'Invalid dataset declaration. Expected: alias = DEF',
         lineNumber: lineIndex + 1,
         details: `Got: ${line}`,
       },
     };
   }
 
-  const [, alias, definitionCode, periodStr] = match;
-
-  // Validate period (MVP: only TODAY)
-  if (periodStr !== 'TODAY') {
-    return {
-      success: false,
-      error: {
-        message: `Invalid period "${periodStr}". MVP only supports: TODAY`,
-        lineNumber: lineIndex + 1,
-      },
-    };
-  }
-
-  const period: Period = periodStr as Period;
+  const [, alias, definitionCode] = match;
 
   return {
     success: true,
     dataset: {
       alias,
       definitionCode,
-      period,
     },
     nextLine: lineIndex + 1,
   };

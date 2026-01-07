@@ -24,17 +24,19 @@ const VALID_TIME_BASES = new Set(['t', 'm', 'p', 'n']);
 
 /**
  * Evaluation result type
+ * Value can be null (e.g., division by zero returns null instead of error)
  */
 type EvalResult =
-  | { success: true; value: number }
+  | { success: true; value: number | null }
   | { success: false; error: string };
 
 /**
  * Intermediate value types during evaluation
  * - number: scalar result
+ * - null: result of division by zero (propagates through arithmetic)
  * - number[]: array of values (from field access before aggregation)
  */
-type IntermediateValue = number | number[];
+type IntermediateValue = number | null | number[];
 
 /**
  * Evaluate a widget expression
@@ -187,6 +189,9 @@ function parseExpression(
       const result = parseUnary();
       if (!result.success) return result;
       const val = result.value;
+      if (val === null) {
+        return { success: true, value: null };
+      }
       if (Array.isArray(val)) {
         return { success: true, value: val.map((v) => -v) };
       }
@@ -318,6 +323,11 @@ function applyOperator(
     };
   }
 
+  // Null propagates through arithmetic (result of division by zero)
+  if (left === null || right === null) {
+    return { success: true, value: null };
+  }
+
   const l = left as number;
   const r = right as number;
 
@@ -329,13 +339,15 @@ function applyOperator(
     case '*':
       return { success: true, value: l * r };
     case '/':
+      // Division by zero returns null instead of error
       if (r === 0) {
-        return { success: false, error: 'Division by zero' };
+        return { success: true, value: null };
       }
       return { success: true, value: l / r };
     case '%':
+      // Modulo by zero returns null instead of error
       if (r === 0) {
-        return { success: false, error: 'Modulo by zero' };
+        return { success: true, value: null };
       }
       return { success: true, value: l % r };
     default:
@@ -350,12 +362,15 @@ function applyAggregation(
   fn: string,
   values: IntermediateValue
 ): { success: true; value: number } | { success: false; error: string } {
-  if (!Array.isArray(values)) {
-    // Single value - treat as array of one
-    values = [values];
+  // Handle null (propagate as 0 for aggregations)
+  if (values === null) {
+    return { success: true, value: 0 };
   }
 
-  const nums = values.filter((v): v is number => typeof v === 'number' && !isNaN(v));
+  // Convert single value to array
+  const arr: number[] = Array.isArray(values) ? values : [values];
+
+  const nums = arr.filter((v): v is number => typeof v === 'number' && !isNaN(v));
 
   if (nums.length === 0) {
     // Return 0 for empty collections
@@ -364,9 +379,9 @@ function applyAggregation(
 
   switch (fn) {
     case 'sum':
-      return { success: true, value: nums.reduce((a, b) => a + b, 0) };
+      return { success: true, value: nums.reduce((a: number, b: number) => a + b, 0) };
     case 'avg':
-      return { success: true, value: nums.reduce((a, b) => a + b, 0) / nums.length };
+      return { success: true, value: nums.reduce((a: number, b: number) => a + b, 0) / nums.length };
     case 'count':
       return { success: true, value: nums.length };
     default:

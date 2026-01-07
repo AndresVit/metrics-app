@@ -98,14 +98,51 @@ app.get('/api/widgets', async (_req: Request, res: Response) => {
   }
 });
 
+// Map frontend bigPeriod to internal Period type
+type BigPeriod = 'day' | 'week' | 'month' | 'year';
+type Period = 'DAY' | 'WEEK' | 'MONTH' | 'YEAR';
+
+function mapBigPeriodToInternal(bigPeriod: string): Period {
+  const mapping: Record<BigPeriod, Period> = {
+    day: 'DAY',
+    week: 'WEEK',
+    month: 'MONTH',
+    year: 'YEAR',
+  };
+  return mapping[bigPeriod as BigPeriod] || 'DAY';
+}
+
 /**
  * GET /api/dashboard
  *
  * Loads all widgets for the user from Supabase and executes each one.
  * Returns results for all widgets; individual failures don't break the response.
+ *
+ * Query params:
+ * - anchorDate: ISO date string for temporal filtering (optional, defaults to today)
+ * - period: bigPeriod from temporal context (day/week/month/year, defaults to day)
  */
-app.get('/api/dashboard', async (_req: Request, res: Response) => {
+app.get('/api/dashboard', async (req: Request, res: Response) => {
   console.log('[API] GET /api/dashboard hit');
+
+  // Parse anchorDate from query params
+  const anchorDateParam = req.query.anchorDate as string | undefined;
+  const anchorDate = anchorDateParam ? new Date(anchorDateParam) : new Date();
+
+  // Parse period (bigPeriod) from query params
+  const periodParam = req.query.period as string | undefined;
+  const period = mapBigPeriodToInternal(periodParam || 'day');
+
+  // Validate date
+  if (isNaN(anchorDate.getTime())) {
+    res.status(400).json({
+      success: false,
+      error: `Invalid anchorDate: ${anchorDateParam}`,
+    });
+    return;
+  }
+
+  console.log(`[API] anchorDate=${anchorDate.toISOString().split('T')[0]}, period=${period}`);
 
   try {
     // Load all widgets for the user from Supabase
@@ -116,7 +153,7 @@ app.get('/api/dashboard', async (_req: Request, res: Response) => {
     const widgetResults = await Promise.all(
       storedWidgets.map(async (widget) => {
         try {
-          const result = await runWidget(widget.dsl, { userId: USER_ID });
+          const result = await runWidget(widget.dsl, { userId: USER_ID, anchorDate, period });
 
           if (result.success) {
             return {

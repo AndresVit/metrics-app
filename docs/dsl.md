@@ -462,13 +462,15 @@ Types are coerced according to field declarations:
 ```
 WIDGET "Daily Productivity"
 
-tims = TIM FROM TODAY
+tims = TIM
 
 "productive_time": int = sum(tims.time("t"))
 "total_duration": int = sum(tims.duration)
 "productivity": float = sum(tims.time("t")) / sum(tims.duration)
 END
 ```
+
+Note: The time period (day/week/month/year) comes from the temporal context, not from the DSL.
 
 Output:
 ```json
@@ -484,7 +486,7 @@ Output:
 ```
 WIDGET "Daily Reading"
 
-reads = READ FROM TODAY
+reads = READ
 
 "pages": int = sum(reads.pages_read)
 "duration": int = sum(reads.duration)
@@ -506,7 +508,7 @@ Output:
 ```
 WIDGET "Time Breakdown"
 
-tims = TIM FROM TODAY
+tims = TIM
 
 "good": int = sum(tims.time("t"))
 "meeting": int = sum(tims.time("m"))

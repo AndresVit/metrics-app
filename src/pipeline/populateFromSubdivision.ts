@@ -8,6 +8,7 @@ import {
   setAttributeValue,
 } from './types';
 
+
 const SUBDIVISION_PATTERN = /subdivision\[(\d+)\]/;
 const DIVISION_PATTERN = /division\[(\d+)\]/;
 const PATH_PATTERN = /path\[(\d+)\]/;
@@ -136,7 +137,7 @@ function processEntry(
         entry.entry.userId,
         field.baseDefinitionId,
         entry.entry.id,
-        entry.entry.timestamp,
+        entry.entry.timestamp, // Already normalized to 00:00
         entry.entry.subdivision,
         null,
         now,

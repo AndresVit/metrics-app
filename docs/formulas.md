@@ -254,12 +254,12 @@ Widgets use a different evaluation context than entry formulas. While entry form
 In widgets, expressions reference a dataset alias that represents all entries matching the query:
 
 ```
-tims = TIM FROM TODAY
+tims = TIM
 
 "total": int = sum(tims.duration)
 ```
 
-Here `tims` is a collection of all TIM entries from today.
+Here `tims` is a collection of all TIM entries matching the current temporal context (day/week/month/year).
 
 ### 12.2 Aggregation Functions (Widget Context)
 

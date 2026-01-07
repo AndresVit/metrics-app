@@ -1,49 +1,8 @@
 .app {
   max-width: 1000px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 1.5rem 2rem;
   font-family: system-ui, -apple-system, sans-serif;
-}
-
-/* Header */
-.app-header {
-  margin-bottom: 2rem;
-}
-
-.app-header h1 {
-  margin-bottom: 1rem;
-  color: #333;
-}
-
-/* Tabs */
-.tabs {
-  display: flex;
-  gap: 0.5rem;
-  border-bottom: 2px solid #e9ecef;
-  padding-bottom: 0;
-}
-
-.tabs button {
-  padding: 0.75rem 1.5rem;
-  font-size: 14px;
-  font-weight: 600;
-  color: #666;
-  background-color: transparent;
-  border: none;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -2px;
-  cursor: pointer;
-  border-radius: 0;
-}
-
-.tabs button:hover {
-  color: #333;
-  background-color: #f8f9fa;
-}
-
-.tabs button.active {
-  color: #007bff;
-  border-bottom-color: #007bff;
 }
 
 /* Temporal Bar */

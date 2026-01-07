@@ -249,7 +249,7 @@ function TemporalBar() {
 
 const EXAMPLE_WIDGET = `WIDGET "Daily Productivity"
 
-tims = TIM FROM TODAY
+tims = TIM
 
 "productive_time": int = sum(tims.time("t"))
 "meeting_time": int = sum(tims.time("m"))
@@ -257,19 +257,17 @@ tims = TIM FROM TODAY
 "productivity": float = sum(tims.time("t")) / sum(tims.duration)
 END`;
 
-type Tab = 'dashboard' | 'runner';
-
 interface WidgetResult {
   success: boolean;
   name?: string;
-  result?: Record<string, number>;
+  result?: Record<string, number | null>;
   error?: string;
 }
 
 interface DashboardWidget {
   id: string;
   name: string;
-  result: Record<string, number> | null;
+  result: Record<string, number | null> | null;
   error: string | null;
 }
 
@@ -279,60 +277,23 @@ interface DashboardResponse {
   error?: string;
 }
 
+// Dev-only route: access Widget Runner via ?dev=runner
+function useDevRoute(): 'dashboard' | 'runner' {
+  const params = new URLSearchParams(window.location.search);
+  return params.get('dev') === 'runner' ? 'runner' : 'dashboard';
+}
+
 function App() {
-  const [activeTab, setActiveTab] = useState<Tab>('dashboard');
+  const view = useDevRoute();
 
   return (
     <TemporalContextProvider>
       <div className="app">
-        <header className="app-header">
-          <h1>Metrics Dashboard</h1>
-          <nav className="tabs">
-            <button
-              className={activeTab === 'dashboard' ? 'active' : ''}
-              onClick={() => setActiveTab('dashboard')}
-            >
-              Dashboard
-            </button>
-            <button
-              className={activeTab === 'runner' ? 'active' : ''}
-              onClick={() => setActiveTab('runner')}
-            >
-              Widget Runner
-            </button>
-          </nav>
-        </header>
-
         <TemporalBar />
-
-        {activeTab === 'dashboard' ? <Dashboard /> : <WidgetRunner />}
+        {view === 'dashboard' ? <Dashboard /> : <WidgetRunner />}
       </div>
     </TemporalContextProvider>
   );
-}
-
-// Map bigPeriod to backend period parameter
-function mapBigPeriodToBackend(bigPeriod: BigPeriod, anchorDate: Date): string {
-  // For now, only 'day' is fully implemented as TODAY
-  // Other periods are stubbed but structure is correct
-  const today = new Date();
-  const isToday =
-    anchorDate.getFullYear() === today.getFullYear() &&
-    anchorDate.getMonth() === today.getMonth() &&
-    anchorDate.getDate() === today.getDate();
-
-  switch (bigPeriod) {
-    case 'day':
-      return isToday ? 'TODAY' : formatDateParam(anchorDate);
-    case 'week':
-      return 'WEEK'; // Stubbed
-    case 'month':
-      return 'MONTH'; // Stubbed
-    case 'year':
-      return 'YEAR'; // Stubbed
-    default:
-      return 'TODAY';
-  }
 }
 
 function formatDateParam(date: Date): string {
@@ -350,9 +311,8 @@ function Dashboard() {
     setError(null);
 
     try {
-      const period = mapBigPeriodToBackend(bigPeriod, anchorDate);
       const params = new URLSearchParams({
-        period,
+        period: bigPeriod,
         groupBy: smallPeriod,
         anchorDate: formatDateParam(anchorDate),
       });
@@ -442,7 +402,9 @@ function Dashboard() {
                     <tr key={key}>
                       <td className="label">{key}</td>
                       <td className="value">
-                        {typeof value === 'number' && !Number.isInteger(value)
+                        {value === null
+                          ? '—'
+                          : typeof value === 'number' && !Number.isInteger(value)
                           ? value.toFixed(4)
                           : value}
                       </td>
@@ -524,7 +486,9 @@ function WidgetRunner() {
                     <tr key={key}>
                       <td>{key}</td>
                       <td className="value">
-                        {typeof value === 'number' && !Number.isInteger(value)
+                        {value === null
+                          ? '—'
+                          : typeof value === 'number' && !Number.isInteger(value)
                           ? value.toFixed(4)
                           : value}
                       </td>

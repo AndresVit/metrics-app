@@ -698,7 +698,21 @@ The Temporal Bar is a global top bar visible in all main views:
 | Date navigation | Left/right arrows + clickable date display |
 | Filters | Placeholder stub for future filter implementation |
 
-### 13.3 Integration
+### 13.3 Entry Timestamp Model
+
+All entries use a single `timestamp` field normalized to 00:00:00 (start of day):
+
+```
+entry.timestamp = date at 00:00 of the day the entry belongs to
+```
+
+**Rules:**
+- For entries with timings (TIM): `timestamp` is the day, timing blocks define hours/minutes
+- For entries without timing: `timestamp` is sufficient
+- No separate date field required
+- Pipeline normalizes all timestamps to 00:00 automatically
+
+### 13.4 Integration
 
 **React Context:**
 - `TemporalContextProvider` wraps the app at the root level
@@ -706,11 +720,17 @@ The Temporal Bar is a global top bar visible in all main views:
 - Context changes trigger automatic dashboard refresh
 
 **API Integration:**
-- Dashboard fetches include temporal parameters: `period`, `groupBy`, `anchorDate`
-- Current mapping: `bigPeriod=day` maps to backend `TODAY` period
-- Other periods are stubbed (WEEK, MONTH, YEAR) pending backend support
+- Dashboard fetches include `anchorDate` query parameter
+- Backend filters entries by `timestamp` using date range from period
+- All periods supported: DAY, WEEK, MONTH, YEAR (plus TODAY)
 
-### 13.4 MVP Scope
+**Date Range Calculation:**
+- DAY: `startOfDay(anchorDate)` to `startOfDay(anchorDate + 1)`
+- WEEK: Monday 00:00 to following Monday 00:00
+- MONTH: First of month to first of next month
+- YEAR: Jan 1 to Jan 1 next year
+
+### 13.5 MVP Scope
 
 | Feature | Status |
 |---------|--------|
@@ -719,7 +739,27 @@ The Temporal Bar is a global top bar visible in all main views:
 | Date navigation (arrows) | MVP |
 | Date picker for anchorDate | MVP |
 | Dashboard refresh on context change | MVP |
-| bigPeriod=day → TODAY backend mapping | MVP |
+| All periods (DAY/WEEK/MONTH/YEAR) | MVP |
+| Timestamp normalization to 00:00 | MVP |
+| Division by zero → null | MVP |
 | Filters | Deferred (stub only) |
-| Week/Month/Year backend support | Deferred |
 | State persistence | Deferred (in-memory only)
+
+## 14. Error Handling
+
+### 14.1 Division by Zero
+
+Widget expressions that result in division by zero return `null` instead of throwing an error:
+
+```typescript
+// If sum(tims.duration) = 0
+sum(tims.time("t")) / sum(tims.duration)  // Returns null, not error
+```
+
+**Behavior:**
+- Division or modulo by zero returns `null`
+- `null` propagates through subsequent arithmetic operations
+- Aggregation functions (sum, avg, count) treat `null` as 0
+- UI renders `null` values as "—" (em-dash placeholder)
+
+This allows widgets to gracefully handle empty datasets without breaking the dashboard.

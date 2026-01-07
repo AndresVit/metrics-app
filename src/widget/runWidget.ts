@@ -26,19 +26,19 @@ export type RunWidgetResult =
  * Run a widget from source DSL
  *
  * @param widgetSource - The widget DSL source string
- * @param config - Widget configuration (userId)
+ * @param config - Widget configuration (userId, anchorDate, period)
  * @returns Widget result or error
  *
  * @example
  * const result = await runWidget(`
  *   WIDGET "Daily Productivity"
  *
- *   tims = TIM FROM TODAY
+ *   tims = TIM
  *
  *   "good": int = sum(tims.time("t"))
  *   "total": int = sum(tims.duration)
  *   END
- * `, { userId: 'user-123' });
+ * `, { userId: 'user-123', anchorDate: new Date(), period: 'DAY' });
  */
 export async function runWidget(
   widgetSource: string,
@@ -57,12 +57,11 @@ export async function runWidget(
 
   const widget = parseResult.widget;
 
-  // 2. Load data for the dataset
+  // 2. Load data for the dataset (period comes from config, not from DSL)
   let entries: LoadedEntry[];
   try {
     entries = await loadEntriesForWidget(
       widget.dataset.definitionCode,
-      widget.dataset.period,
       config
     );
   } catch (err) {
@@ -94,9 +93,9 @@ export async function runWidget(
       };
     }
 
-    // Apply type coercion based on declared type
+    // Apply type coercion based on declared type (null passes through)
     let value = evalResult.value;
-    if (field.datatype === 'int') {
+    if (value !== null && field.datatype === 'int') {
       value = Math.floor(value);
     }
 
@@ -156,9 +155,9 @@ export function runWidgetWithData(
       };
     }
 
-    // Apply type coercion based on declared type
+    // Apply type coercion based on declared type (null passes through)
     let value = evalResult.value;
-    if (field.datatype === 'int') {
+    if (value !== null && field.datatype === 'int') {
       value = Math.floor(value);
     }
 

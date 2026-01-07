@@ -11,6 +11,7 @@ import {
 } from './types';
 import { evaluateFormula } from './formulaEngine';
 
+
 type FormulaValue = number | number[] | string | string[] | boolean | boolean[] | null;
 
 /**
@@ -164,7 +165,7 @@ function processEntry(
         entry.entry.userId,
         field.baseDefinitionId,
         entry.entry.id,
-        entry.entry.timestamp,
+        entry.entry.timestamp, // Already normalized to 00:00
         entry.entry.subdivision, // Inherited from parent - see comment above
         null,
         now,

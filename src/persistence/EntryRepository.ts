@@ -30,7 +30,7 @@ interface EntryInsert {
   user_id: string;
   definition_id: string;
   parent_entry_id: number | null;
-  timestamp: string; // ISO string for Supabase
+  timestamp: string; // ISO string for Supabase (always at 00:00)
   subdivision: string | null;
   comments: string | null;
 }
@@ -140,7 +140,7 @@ async function persistEntryRecursive(
     throw err;
   }
 
-  // 1. Insert into entries table
+  // 1. Insert into entries table (timestamp is always at 00:00 start of day)
   const entryRow: EntryInsert = {
     user_id: userId,
     definition_id: resolvedDefId,

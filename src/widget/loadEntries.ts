@@ -54,16 +54,16 @@ interface ChildAttributeRow {
  * Load entries from database for widget evaluation
  *
  * @param definitionCode - The metric definition code (e.g., "TIM", "READ")
- * @param period - The time period filter (MVP: TODAY only)
- * @param config - Widget configuration including userId
+ * @param config - Widget configuration including userId, anchorDate, and period
  * @returns Array of loaded entries with attributes
  */
 export async function loadEntriesForWidget(
   definitionCode: string,
-  period: Period,
   config: WidgetConfig
 ): Promise<LoadedEntry[]> {
   const { userId } = config;
+  // Period comes from temporal context (bigPeriod), defaults to DAY
+  const period: Period = config.period || 'DAY';
 
   // 1. Find the definition ID for the code
   const { data: definitions, error: defError } = await supabase
@@ -83,10 +83,11 @@ export async function loadEntriesForWidget(
 
   const definitionId = (definitions as DefinitionRow[])[0].id;
 
-  // 2. Get date range for period filter
-  const { startDate, endDate } = getPeriodDateRange(period);
+  // 2. Get date range for period filter (using anchorDate from config)
+  const anchorDate = config.anchorDate || new Date();
+  const { startDate, endDate } = getPeriodDateRange(period, anchorDate);
 
-  // 3. Load metric entries matching definition and period
+  // 3. Load metric entries matching definition and period (filter by timestamp at 00:00)
   const { data: entries, error: entryError } = await supabase
     .from('entries')
     .select('id, definition_id, timestamp, subdivision')
@@ -279,21 +280,52 @@ async function loadTimeTypeValues(
 }
 
 /**
- * Get date range for a period
+ * Get date range for a period based on anchor date.
  *
- * @param period - The period (TODAY for MVP)
+ * All periods use anchorDate as the reference point.
+ *
+ * @param period - The period type (DAY, WEEK, MONTH, YEAR)
+ * @param anchorDate - The reference date for computing ranges
  * @returns Start and end dates for the period
  */
-function getPeriodDateRange(period: Period): { startDate: Date; endDate: Date } {
-  const now = new Date();
+function getPeriodDateRange(period: Period, anchorDate: Date): { startDate: Date; endDate: Date } {
+  let startDate: Date;
+  let endDate: Date;
 
   switch (period) {
+    case 'DAY':
     case 'TODAY': {
-      const startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-      const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0, 0);
-      return { startDate, endDate };
+      // Single day based on anchorDate (TODAY kept for backwards compatibility)
+      startDate = new Date(anchorDate.getFullYear(), anchorDate.getMonth(), anchorDate.getDate(), 0, 0, 0, 0);
+      endDate = new Date(anchorDate.getFullYear(), anchorDate.getMonth(), anchorDate.getDate() + 1, 0, 0, 0, 0);
+      break;
+    }
+    case 'WEEK': {
+      // Week containing anchorDate (Monday-Sunday)
+      const dayOfWeek = anchorDate.getDay();
+      const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+      startDate = new Date(anchorDate.getFullYear(), anchorDate.getMonth(), anchorDate.getDate() - daysToMonday, 0, 0, 0, 0);
+      endDate = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + 7, 0, 0, 0, 0);
+      break;
+    }
+    case 'MONTH': {
+      // Month containing anchorDate
+      startDate = new Date(anchorDate.getFullYear(), anchorDate.getMonth(), 1, 0, 0, 0, 0);
+      endDate = new Date(anchorDate.getFullYear(), anchorDate.getMonth() + 1, 1, 0, 0, 0, 0);
+      break;
+    }
+    case 'YEAR': {
+      // Year containing anchorDate
+      startDate = new Date(anchorDate.getFullYear(), 0, 1, 0, 0, 0, 0);
+      endDate = new Date(anchorDate.getFullYear() + 1, 0, 1, 0, 0, 0, 0);
+      break;
     }
     default:
       throw new Error(`Unsupported period: ${period}`);
   }
+
+  // [DEV] Log computed date range
+  console.log(`[loadEntries] period=${period}, anchorDate=${anchorDate.toISOString().split('T')[0]}, range=${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]}`);
+
+  return { startDate, endDate };
 }
