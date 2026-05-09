@@ -1,0 +1,76 @@
+METRIC SOURCE
+  NAME "Food Source"
+
+  name: string @key
+  protein: float
+  carbs: float
+  fat: float
+  calories: float = self.protein*4+self.carbs*4+self.fat*9
+  potatoes: int
+END
+
+METRIC TIM
+  time_init: int
+  time_end: int
+  duration: int = self.time_end - self.time_init
+  time_type: int (0,n)
+  gross_productivity: float = self.time("t") / self.duration
+  internal_productivity: float = self.time("t") / (self.time("t") + self.time("m"))
+  external_productivity: float = (self.time("t") + self.time("m")) / (self.time("t") + self.time("m") + self.time("p"))
+  net_productivity: float = self.time("t") / (self.time("t") + self.time("m") + self.time("p"))
+END
+
+METRIC BOOK
+  NAME "Book"
+
+  total_words: int
+  words_per_page: float = self.total_words / self.total_pages
+  title: string @key  # "title of the book"
+  total_pages: int  # "total number of pages of the book"
+END
+
+METRIC EAT
+  NAME "Meal"
+
+  source: SOURCE
+  amount: int
+  protein: float = self.source.protein*self.amount/100
+  carbs: float = self.source.carbs*self.amount/100
+  fat: float = self.source.fat*self.amount/100
+  calories: int = self.protein*4 + self.carbs*4 + self.fat*9
+END
+
+METRIC DGR
+  NAME "Getting ready time"
+
+  plus: int
+  task_1: int
+  task_2: int
+  total: int = self.task_1+self.task_2+self.plus
+END
+
+METRIC WORK
+  NAME "Work"
+
+  timing: TIM
+END
+
+METRIC READ
+  NAME "Reading Session"
+  CATEGORY "productive/uni"
+
+  pages_read: int
+  duration: int
+  book: BOOK
+  wpm: float = self.pages_read * self.book.words_per_page / self.duration
+  book_title: string @key = self.book.title
+END
+
+METRIC EST
+  NAME "Study Session"
+  CATEGORY "productive/uni"
+
+  timing: TIM
+  adv?: int
+  project?: string @key
+END

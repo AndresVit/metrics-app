@@ -1,0 +1,348 @@
+V3/4
+EST:DEL
+0900-0905 t3m2
+
+EST:DEL
+0905-0910 t3m2
+
+EST:DEL
+0910-0915 t3m2
+
+EST:DEL
+0915-0920 t3m2
+
+EST:DEL
+0920-0925 t3m2
+
+EST:DEL
+0925-0930 t3m2
+
+EST:DEL
+0930-0935 t3m2
+
+EST:DEL
+0935-0940 t3m2
+
+EST:DEL
+0945-0950 t3m2
+
+EST:DEL
+0950-0955 t3m2
+
+EST:DEL
+0955-1000 t3m2
+
+EST:DEL
+1000-1005 t3m2
+
+EST:DEL
+1005-1010 t3m2
+
+EST:DEL
+1010-1015 t3m2
+
+EST:DEL
+1015-1020 t3m2
+
+EST:DEL
+1020-1025 t3m2
+
+EST:DEL
+1025-1030 t3m2
+
+EST:DEL
+1030-1035 t3m2
+
+EST:DEL
+1035-1040 t3m2
+
+EST:DEL
+1040-1045 t3m2
+
+EST:DEL
+1045-1050 t3m2
+
+EST:DEL
+1050-1055 t3m2
+
+EST:DEL
+1055-1100 t3m2
+
+EST:DEL
+1100-1105 t3m2
+
+EST:DEL
+1105-1110 t3m2
+
+EST:DEL
+1110-1115 t3m2
+
+EST:DEL
+1115-1120 t3m2
+
+EST:DEL
+1120-1125 t3m2
+
+EST:DEL
+1125-1130 t3m2
+
+EST:DEL
+1130-1135 t3m2
+
+EST:DEL
+1135-1140 t3m2
+
+EST:DEL
+1140-1145 t3m2
+
+EST:DEL
+1145-1150 t3m2
+
+EST:DEL
+1150-1155 t3m2
+
+EST:DEL
+1155-1200 t3m2
+
+EST:DEL
+1200-1205 t3m2
+
+EST:DEL
+1205-1210 t3m2
+
+EST:DEL
+1210-1215 t3m2
+
+EST:DEL
+1215-1220 t3m2
+
+S4/4
+EST:BENCH40/coding;adv:10,project:bench
+0700-0730 t20m10
+
+EST:BENCH40/coding;adv:10,project:bench
+0730-0800 t25m5
+
+EST:BENCH40/coding;adv:10,project:bench
+0800-0830 t15m10n5
+
+EST:BENCH40/coding;adv:10,project:bench
+0830-0900 t30
+
+EST:BENCH40/coding;adv:10,project:bench
+0900-0930 t20m5n5
+
+EST:BENCH40/coding;adv:10,project:bench
+0930-1000 t10m15n5
+
+EST:BENCH40/coding;adv:10,project:bench
+1000-1030 t18m12
+
+EST:BENCH_MIXED/test;adv:3
+1000-1030 t20m10
+
+EST:BENCH40/coding;adv:10,project:bench
+1030-1100 t25m5
+
+EST:BENCH_MIXED/test;adv:3
+1030-1100 t25m5
+
+EST:BENCH40/coding;adv:10,project:bench
+1100-1130 t20m10
+
+EST:BENCH40/coding;adv:10,project:bench
+1130-1200 t25m5
+
+EST:BENCH40/coding;adv:10,project:bench
+1200-1230 t15m10n5
+
+EST:BENCH40/coding;adv:10,project:bench
+1230-1300 t30
+
+EST:BENCH40/coding;adv:10,project:bench
+1300-1330 t20m5n5
+
+EST:BENCH40/coding;adv:10,project:bench
+1330-1400 t10m15n5
+
+EST:BENCH40/coding;adv:10,project:bench
+1400-1430 t18m12
+
+EST:BENCH40/coding;adv:10,project:bench
+1430-1500 t25m5
+
+EST:BENCH40/coding;adv:10,project:bench
+1500-1530 t20m10
+
+EST:BENCH40/coding;adv:10,project:bench
+1530-1600 t25m5
+
+EST:BENCH40/coding;adv:10,project:bench
+1600-1630 t15m10n5
+
+EST:BENCH40/coding;adv:10,project:bench
+1630-1700 t30
+
+EST:BENCH40/coding;adv:10,project:bench
+1700-1730 t20m5n5
+
+EST:BENCH40/coding;adv:10,project:bench
+1730-1800 t10m15n5
+
+EST:BENCH40/coding;adv:10,project:bench
+1800-1830 t18m12
+
+EST:BENCH40/coding;adv:10,project:bench
+1830-1900 t25m5
+
+EST:BENCH40/coding;adv:10,project:bench
+1900-1930 t20m10
+
+EST:BENCH40/coding;adv:10,project:bench
+1930-2000 t25m5
+
+EST:BENCH40/coding;adv:10,project:bench
+2000-2030 t15m10n5
+
+EST:BENCH40/coding;adv:10,project:bench
+2030-2100 t30
+
+EST:BENCH40/coding;adv:10,project:bench
+2100-2130 t20m5n5
+
+EST:BENCH40/coding;adv:10,project:bench
+2130-2200 t10m15n5
+
+EST:BENCH40/coding;adv:10,project:bench
+2200-2230 t18m12
+
+EST:BENCH40/coding;adv:10,project:bench
+2230-2300 t25m5
+
+EST:BENCH40/coding;adv:10,project:bench
+2300-2330 t20m10
+
+EST:BENCH40/coding;adv:10,project:bench
+2330-2400 t25m5
+
+EST:BENCH40/coding;adv:10,project:bench
+2400-2430 t15m10n5
+
+EST:BENCH40/coding;adv:10,project:bench
+2430-2500 t30
+
+EST:BENCH40/coding;adv:10,project:bench
+2500-2530 t20m5n5
+
+EST:BENCH40/coding;adv:10,project:bench
+2530-2600 t10m15n5
+
+EST:BENCH40/coding;adv:10,project:bench
+2600-2630 t18m12
+
+EST:BENCH40/coding;adv:10,project:bench
+2630-2700 t25m5
+
+D5/4
+EST:DEL
+0900-1000 t48m12
+
+EST:DEL
+1000-1030 t24m6
+
+L13/4
+EST:TFG
+1600-1700 t60
+
+D19/4
+EST:TFG/coding;adv:15,project:thesis
+0900-0930 t20m10
+
+EST:TFG/coding;adv:10,project:thesis
+1030-1130 t45m15
+
+L20/4
+EST:TFG/coding;adv:15,project:thesis;tagkey:tagvalue
+0900-0930 t20m10
+
+EST:TFG/coding;adv:10,project:thesis;tagkey:tagvalue
+0930-1015 t35m10
+
+EST:DOG
+1048-1143 t30m20p5
+
+EST:DOG
+1048-1143 t30m20p5
+
+EST:DOG
+1143-1201 p15n3
+
+EST:DOG
+1143-1201 p15n3
+
+EST:DOG
+1201-1218 t12m5
+
+EST:DOG
+1201-1218 t12m5
+
+EST:DOG
+1218-1228 t3m7
+
+EST:DOG
+1218-1228 t3m7
+
+EST:DOG
+1228-1254 t25m1
+
+EST:DOG
+1228-1254 t25m1
+
+EST:DOG
+1254-1319 t22m1n2
+
+EST:DOG
+1254-1319 t22m1n2
+
+EST:TIM
+1406-1410 t4
+
+EST:TIM
+1406-1410 t4
+
+EST:DOG
+1410-1417 t3m1n3
+
+EST:DOG
+1417-1425 t8
+
+EST:DOG
+1425-1430 t3n2
+
+EST:DOG
+1430-1447 p17
+
+EST:DOG
+1447-1502 t10m2p3
+
+EST:DOG/meeting
+1502-1525 t12m11
+
+EST:DOG/meeting
+1525-1547 t6m16
+
+EST:DOG/meeting
+1547-1601 t12m2
+
+EST:DOG
+1601-1626 t13m10n2
+
+M21/4
+EST:TFG/coding;adv:15,project:thesis;tagkey:tagvalue
+0920-0930 m10
+
+EST:TFG/coding;adv:10,project:thesis;tagkey:tagvalue
+0930-1015 t35m10
+
+EST:TFG/coding;adv:10,project:thesis;tagkey:tagvalue
+1030-1130 t45m15

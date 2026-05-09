@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -c \"import sys, json; d = json.load\\(sys.stdin\\); print\\([{ 'code': x['code'], 'category': x.get\\('category'\\)} for x in d['definitions']]\\)\")",
+      "Bash(python3 -c \"import sys, json; d = json.load\\(sys.stdin\\); print\\('count:', len\\(d.get\\('timings',[]\\)\\)\\); print\\('codes:', set\\(t['definitionCode'] for t in d.get\\('timings',[]\\)[:50]\\)\\)\")"
+    ]
+  }
+}

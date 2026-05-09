@@ -1,0 +1,378 @@
+# Design Decisions
+
+Key architectural decisions to avoid redesign and ambiguity.
+
+## 1. Definitions are user-scoped
+All Definitions (metrics and attributes) belong to a user.
+
+Rationale:
+- Full personalization
+- No schema collisions
+- Easier future import/export of definitions
+
+## 2. Formulas live in Fields, not Definitions
+Formulas are attached to Fields instead of Definitions.
+
+Rationale:
+- The same Definition can appear in different metrics with different logic
+- Formula behavior is context-dependent
+
+## 3. Fields have explicit names
+Each Field has a mandatory name.
+
+Rationale:
+- Prevents ambiguity when the same Definition appears multiple times
+- Enables clear and readable formula expressions
+- Auto-generated names are allowed but must be unique
+
+## 4. HierarchyString stored as text
+HierarchyString is stored as plain text in the database.
+
+Rationale:
+- Simplicity
+- Easy indexing and querying
+- Can be evolved later if needed
+
+## 5. Typed value columns for AttributeEntry
+Attribute values are stored in typed columns instead of JSON.
+
+Rationale:
+- Better performance
+- Easier aggregation and analytics
+- Avoids runtime casting errors
+
+## 6. Deterministic pipeline
+Entry creation follows a strict ordered pipeline: parseInput → convertToInstances → applyFormulas → validateCardinalities → persist.
+
+Note: There is no special "populateFromSubdivision" step. Values derived from subdivision are handled via normal formulas (e.g., `formula = subdivision[1]`).
+
+Rationale:
+- Predictability
+- Clear separation of responsibilities
+- Easier debugging and testing
+
+## 7. No hidden side effects
+Each pipeline step:
+- Reads only what previous steps produced
+- Does not mutate global state
+- Can be unit tested independently
+
+## 8. Primary identifier field for instance resolution
+Each MetricDefinition has a single, explicit primary identifier field.
+
+Requirements:
+- Must be a Field of the MetricDefinition
+- Must have input_mode = input
+- Must have datatype = string or int
+- Must have cardinality exactly 1
+
+`convertToInstances` resolves textual references by equality lookup on the primary identifier field value. Errors if no match or multiple matches found.
+
+## 9. Division vs subdivision
+- `division`: hierarchy derived from Definition code and parent_definition chain (schema-level)
+- `subdivision`: hierarchy provided by user in Entry input (data-level)
+- `path`: division + subdivision concatenated
+- `category` is separate and NOT part of path
+
+Note: `parent_definition_id` defines Definition inheritance, distinct from Entry parent-child (`parent_entry_id`).
+
+## 10. Formula fields produce one instance
+Fields with input_mode = formula must have max_instances = 1. Formulas may aggregate lists internally, but the result is always a single instance.
+
+## 11. Formula evaluation order
+TODO (Future): Dependency-based evaluation using topological sorting.
+
+MVP: Formulas may only reference input fields or fields evaluated before them in declaration order. No topological sorting implemented yet.
+
+## 12. Tags are modeled as Fields
+Tags are implemented using the existing Field mechanism. There is exactly one TagDefinition, which is an AttributeDefinition (datatype = hierarchyString). MetricDefinitions include one Field named `tag` with base_definition = TagDefinition, input_mode = input, min_instances = 0, and max_instances = unlimited. Each concrete tag is an AttributeEntry where subdivision = tag key (e.g., "place") and value = tag value (e.g., "library/upstairs"). Tags do not require schema changes per tag, participate in the normal Entry pipeline, and can be used in formulas and analytics like any other AttributeEntry.
+
+## 13. Atomic entry creation
+Entry creation is atomic. Any error in the pipeline causes the entire entry to be rejected. No partial persistence. Preview mode runs the full pipeline without persisting.
+
+## 14. HierarchyString delimiter
+The delimiter for HierarchyString is `/`.
+
+## 15. Definition.id vs Definition.code
+- `id` is the stable primary key (does not change)
+- `code` is a human-readable semantic identifier (may change)
+
+## 16. Field.name auto-generation
+Default Field.name is derived from base_definition.display_name:
+- Lowercase
+- Replace spaces with underscores
+- Strip non-alphanumeric characters (except underscores)
+- On collision, append _1, _2, etc.
+
+Example: "Words per Page" → "words_per_page"
+
+## 17. Subdivision per Entry
+Each Entry (root and child) has its own subdivision. No implicit inheritance from parent Entry.
+
+## 18. Category is UI-only
+Definition.category is used for UI grouping only. It is not part of path and not accessible from the formula DSL.
+
+## 19. Structured input for MVP
+Textual input grammar is out of scope for MVP. parseInput accepts structured input (JSON or equivalent).
+
+## 20. Timing modeled as a metric (TIM)
+Timing data is represented as a normal MetricDefinition (TIM) rather than a special construct.
+
+Rationale:
+- Consistency with the rest of the domain model
+- TIM entries can be queried and analyzed like any other metric
+- Formulas can reference TIM fields (duration, time_type) normally
+- No special-case handling in the pipeline
+
+## 21. One parent entry per timing line
+Each timing line generates one TIM entry and one parent metric entry (e.g., EST). A timing block with 3 lines produces 6 entries (3 TIM + 3 parent).
+
+Rationale:
+- Each timing line represents a distinct time interval
+- Enables per-line attribute overrides (e.g., different `adv` values)
+- Allows fine-grained tracking and filtering
+- Matches the natural interpretation: each line = one logged activity
+
+## 22. Inline metric entries instead of children[]
+Metric references use inline embedding via `metricEntry` in AttributeValueInput, not the `children[]` array.
+
+Rationale:
+- Fields with metric references behave consistently (all references go through fields)
+- Cardinality validation works naturally (counts children tagged with fieldId)
+- Clear ownership: TIM is the value of the timing field, not an orphan child
+- Eliminates ambiguity about what children[] means in the domain model
+
+The `children[]` array exists only for internal pipeline use and must not appear in parser output.
+
+## 23. Each EST entry has exactly one TIM
+The `timing` field on EST has cardinality (1,1): exactly one TIM per EST entry.
+
+Rationale:
+- Simplifies the data model: one timing line = one TIM + one EST
+- Multiple timing lines produce multiple EST entries, not one EST with multiple TIMs
+- Enables attribute overrides per timing line
+- Matches user mental model: "this time block had these attributes"
+
+## 24. Timing parsing before pipeline validation
+The timing parser (TimingParser) runs before the main pipeline. It transforms the timing DSL into structured MetricEntryInput objects.
+
+Rationale:
+- Separation of concerns: parsing vs. domain logic
+- Parser can reject invalid blocks early (overlapping times, invalid tokens)
+- Pipeline receives valid, structured input
+- Allows multiple parser implementations (timing, default) via a registry
+
+## 25. time() helper instead of generic filtering
+Productivity formulas use an explicit `self.time(base)` helper instead of generic SQL-like filtering syntax.
+
+Rationale:
+- Simple and explicit: `self.time("t")` is clearer than `sum(self.time_type.where(subdivision in "t"))`
+- Domain-specific: encapsulates the aggregation-by-subdivision pattern for timing data
+- Constrained: only valid bases (t, m, p, n) are allowed, preventing errors
+- Returns 0 for missing categories, simplifying formula logic
+
+The helper aggregates by base prefix, so `self.time("m")` includes "m", "m/thk", "m/sw", etc.
+
+## 26. Widgets are not persisted
+Widgets are computed on-demand and NOT stored in the database.
+
+Rationale:
+- Simplicity: no additional tables or sync logic needed
+- Freshness: widgets always reflect current data
+- Flexibility: widget definitions can be modified without migration
+- Performance: MVP data volumes don't require pre-computation
+- No staleness: avoids cache invalidation complexity
+
+Widgets query persisted entries and compute aggregations at runtime.
+
+## 27. Widget WHERE clauses deferred
+WHERE clauses for filtering entries within a widget are not part of MVP.
+
+Rationale:
+- MVP scope: TODAY period filter is sufficient for initial use cases
+- Complexity: WHERE parsing and evaluation adds significant complexity
+- Data volume: filtering can be done client-side for MVP data sizes
+- Iteration: easier to add filtering after core widget system is stable
+
+Future WHERE syntax will likely follow SQL-like patterns: `WHERE subdivision in "prefix"`.
+
+## 28. Widget joins deferred
+Joining across multiple definitions (e.g., TIM + EST) is not part of MVP.
+
+Rationale:
+- Complexity: join semantics require careful design (inner/outer, on what key?)
+- MVP use cases: single-definition widgets cover most reporting needs
+- Data model: entries are already hierarchical (EST contains TIM via timing field)
+- Query cost: joins would require loading and correlating multiple datasets
+
+Future join syntax will need to specify join keys and handle missing matches.
+
+## 29. Widget expressions require scalars for arithmetic
+Widget arithmetic operations (`+`, `-`, `*`, `/`) only work on scalar values, not collections.
+
+Rationale:
+- Clarity: `sum(a) / sum(b)` is unambiguous; `a / b` on collections is not
+- Correctness: element-wise division often gives wrong results for ratios
+- Explicit aggregation: forces users to think about how data should be combined
+- Error prevention: avoids subtle bugs from implicit broadcasting
+
+To compute ratios, aggregate first: `sum(tims.time("t")) / sum(tims.duration)`.
+
+## 30. [SUPERSEDED] UI is read-only first
+**Note:** This decision has been superseded by decision #32.
+
+The UI displays widgets but does not allow editing them directly. Widget modifications go through widgets.txt.
+
+Rationale:
+- Focus: validate the widget system before adding edit complexity
+- Source of truth: widgets.txt remains authoritative
+- Iteration speed: can test and refine widget DSL in text editor
+- Deferred complexity: in-app editing requires conflict resolution, validation UI
+
+The dashboard loads and runs persisted widgets. The widget runner allows ad-hoc DSL testing.
+
+## 31. [SUPERSEDED] widgets.txt is the source of truth
+**Note:** This decision has been superseded by decision #32.
+
+Widget definitions live in `dev/widgets.txt` and are seeded to the database, similar to definitions.txt.
+
+Rationale:
+- Consistency: same pattern as definitions and entries
+- Version control: widget DSL tracked in git
+- Reproducibility: can recreate database state from text files
+- Development flow: edit text, seed, test cycle
+
+The seeding script (`seedWidgets.ts`) parses widgets.txt and inserts into the widgets table. Use `--clean` to replace existing widgets.
+
+## 32. Widgets are created and managed from the UI
+Widget definitions are now created, edited, and deleted directly from the dashboard UI, replacing the seed-based workflow.
+
+Rationale:
+- User autonomy: users can create widgets without developer involvement
+- Immediate feedback: DSL errors appear in the widget card, not in a terminal
+- Simpler workflow: no need to edit files, run scripts, and refresh
+- Per-dashboard organization: widgets belong to specific dashboards
+- Standard CRUD: follows established patterns for web applications
+
+Seed scripts (`seedWidgets.ts`, `seedDashboards.ts`) remain available for development and testing purposes but are not part of the production runtime flow.
+
+## 33. KPI widgets only for initial release
+The widget creation UI only supports KPI widgets initially. TABLE and CHART widget types are deferred.
+
+Rationale:
+- Focused scope: KPI widgets cover the primary use case (numeric aggregations)
+- Simpler implementation: single rendering component, no complex visualizations
+- Incremental complexity: can add TABLE/CHART support once KPI widgets are validated
+- Reduced risk: fewer variables in the initial release
+
+## 34. Strict separation of input and output views
+Data entry (input) and dashboard (output) are separate views with no cross-functionality.
+
+Rationale:
+- Clear mental model: entry view is for adding data, dashboard is for viewing aggregations
+- Reduced complexity: each view has a single responsibility
+- Error prevention: can't accidentally modify data while viewing reports
+- Preview before commit: entry view shows preview without affecting persisted data
+- Future extensibility: calendar view (Phase 5) will be a third distinct view
+
+The Data Entry View:
+- INPUT: Raw DSL textarea
+- OUTPUT: Visual calendar preview (non-editable)
+- ACTIONS: Clear, Preview, Insert
+
+The Dashboard View:
+- OUTPUT: Widget results from persisted data
+- ACTIONS: Refresh, create/edit/delete widgets
+
+## 35. Date from context bar, not DSL
+The Data Entry View uses the anchor date from the Temporal Context Bar instead of parsing dates from the DSL.
+
+Rationale:
+- Single source of truth: temporal context bar controls all date-related operations
+- Simpler DSL: no date syntax required in timing blocks
+- Consistent UX: changing the date in the context bar affects both entry and dashboard views
+- Flexibility: can easily enter data for past dates by navigating in the context bar
+- Reduced errors: no date format ambiguity or timezone issues in DSL
+
+Implementation:
+- `timestamp` is set to anchorDate at 00:00
+- `time_init` and `time_end` come from the DSL (minutes from midnight)
+- Date declarations inside DSL are reserved for future implementation
+
+## 36. DayCalendarPreview designed for scalability to week view
+The DayCalendarPreview component is designed as a standalone unit that can be composed into a week view in Phase 5.
+
+Rationale:
+- Reusability: same component renders a single day, seven instances for a week
+- Consistent rendering: each day column uses identical visualization logic
+- Isolated state: each day receives its own timing data
+- Simple composition: week view = container with 7 DayCalendarPreview children
+- Performance: can optimize individual day rendering without affecting week view
+
+Design constraints:
+- Fixed height (720px for 24 hours)
+- No drag/resize interactions (Phase 5 consideration)
+- No click handlers on timing blocks (output only)
+- Styling via CSS classes for easy theming
+
+## 37. Calendar View is NOT a widget
+The Calendar View is a dedicated view component, not a widget type.
+
+Rationale:
+- Different data model: Widgets aggregate data into KPIs; Calendar displays raw TIM entries
+- Different rendering: Widgets use tables/charts; Calendar uses a time-based grid
+- Different interaction: Widgets are cards in a dashboard; Calendar is full-screen
+- Different scope: Widgets show computed values; Calendar shows individual entries
+- Separation of concerns: Mixing them would complicate both implementations
+
+The Calendar View:
+- Loads TIM entries directly via `/api/timings?period=WEEK`
+- Renders entries as positioned blocks in a 7-column grid
+- Uses the global Temporal Context Bar for navigation
+- Is accessed via a dedicated route (`?view=calendar`)
+
+Widgets remain for aggregated KPI display (sum, avg, count), while the Calendar View provides temporal visualization of individual entries.
+
+## 38. Calendar defaults to week scope
+The Calendar View always displays a full week (Monday → Sunday), regardless of the bigPeriod setting.
+
+Rationale:
+- Week is the natural unit for calendar visualization
+- Day view already exists in Data Entry Preview
+- Month/year calendar grids are out of MVP scope
+- Consistent layout simplifies implementation
+
+The Temporal Context Bar's `bigPeriod` affects navigation granularity but not the calendar's display scope. The calendar always shows 7 days.
+
+## 39. Simple mode generates DSL, not new pipeline
+Simple mode data entry generates raw DSL text from form state and feeds it into the existing parse/validate/insert pipeline. No new parser or backend endpoint is needed for entry creation.
+
+Rationale:
+- Zero backend changes: same Preview/Insert code paths
+- Validation behavior is identical: errors display the same way
+- Single source of truth for parsing logic (the existing parsers)
+- Easy to verify correctness: user can switch to Advanced mode and inspect the generated DSL
+- Incremental rollout: if serialization produces incorrect DSL, Advanced mode still works
+
+Implementation:
+- `serializeSimpleEntry()` converts `SimpleFormState` → DSL string
+- SimpleEntryForm generates DSL on every form change via `onDslGenerated` callback
+- DataEntryView stores the generated DSL in a ref and uses it for Preview/Insert
+
+## 40. Definitions endpoint for Simple mode form
+A dedicated `GET /api/definitions` endpoint provides metric metadata (codes, display names, fields, timing capability) to the Simple mode form.
+
+Rationale:
+- Frontend needs structured definition data to render dynamic forms
+- Cannot derive field lists from DSL parsing alone
+- Endpoint filters to input-mode primitive fields only (excludes formulas and metric references)
+- Timing capability is inferred from whether any field references the TIM definition
+
+## 41. Mode toggle in the Temporal Bar
+The Simple/Advanced mode toggle lives in the Temporal Bar (top toolbar) rather than inside the Data Entry view.
+
+Rationale:
+- Global visibility: mode is apparent regardless of scroll position
+- Consistent with other global controls (period, date navigation)
+- Allows future extension to other views (e.g., widget simple editor)
+- Mode state is lifted to App component, shared between TemporalBar and DataEntryView
